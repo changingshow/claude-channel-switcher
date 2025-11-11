@@ -3,7 +3,17 @@
     "allow": [
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(rustc:*)",
+      "Bash(cargo:*)",
+      "Bash(where:*)",
+      "Bash(rustup show:*)",
+      "Bash(mkdir:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"D:\\2025WORK\\claude-select\\electron-app\\tauri-app\\src-tauri\\generate-icons.ps1\")",
+      "Bash(python:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

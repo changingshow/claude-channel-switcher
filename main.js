@@ -156,11 +156,12 @@ ipcMain.handle('select-directory', async () => {
 
 ipcMain.handle('launch-claude', async (event, terminal, terminalDir) => {
   try {
-    spawn(terminal, ['-Command', 'claude'], {
+    const command = `Set-Location -Path '${terminalDir.replace(/'/g, "''")}'; claude`;
+
+    spawn(terminal, ['-Command', command], {
       detached: true,
       stdio: 'ignore',
-      shell: true,
-      cwd: terminalDir
+      shell: true
     });
     return { success: true };
   } catch (error) {

@@ -78,3 +78,6 @@ coverage/
 # Electron
 *.asar
 release/
+
+settings.local.json
+.claude/
