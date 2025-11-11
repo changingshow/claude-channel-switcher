@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Claude API 渠道管理和切换工具">
+    <title>Claude 渠道切换器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" role="complementary">
+            <header class="logo">
+                <div class="logo-icon" aria-hidden="true">⚡</div>
+                <h1 class="logo-text">Claude<br>渠道切换器</h1>
+            </header>
+
+            <nav class="nav-menu" role="navigation" aria-label="主导航">
+                <button class="nav-item active" data-page="channels" aria-label="渠道管理" aria-current="page">
+                    <span class="nav-icon" aria-hidden="true">🏠</span>
+                    <span class="nav-text">渠道管理</span>
+                </button>
+                <button class="nav-item" data-page="settings" aria-label="设置">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span>
+                    <span class="nav-text">设置</span>
+                </button>
+            </nav>
+
+            <footer class="version">v3.0.0</footer>
+        </aside>
+
+        <main class="main-content" role="main">
+            <section id="channels-page" class="page active">
+                <header class="page-header">
+                    <div class="header-left">
+                        <h2 class="page-title">渠道管理</h2>
+                        <span class="channel-count" aria-live="polite">0 个渠道</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="refresh-channel-btn" aria-label="刷新渠道列表">
+                            <span aria-hidden="true">🔄</span>
+                            <span>刷新</span>
+                        </button>
+                        <button class="btn btn-primary" id="add-channel-btn" aria-label="新建渠道">
+                            <span aria-hidden="true">➕</span>
+                            <span>新建渠道</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="channels-container" id="channels-list" role="list"></div>
+            </section>
+
+            <section id="settings-page" class="page">
+                <header class="page-header">
+                    <h2 class="page-title">设置</h2>
+                </header>
+
+                <div class="settings-container">
+                    <article class="setting-card">
+                        <h3 class="setting-title">配置文件路径</h3>
+                        <p class="setting-description">设置 Claude 配置文件的存储位置</p>
+                        <div class="setting-input-group">
+                            <label for="config-path-input" class="sr-only">配置文件路径</label>
+                            <input type="text" id="config-path-input" class="setting-input" readonly aria-readonly="true">
+                            <button class="btn btn-secondary" id="browse-path-btn" aria-label="浏览文件夹">浏览</button>
+                        </div>
+                    </article>
+
+                    <article class="setting-card">
+                        <h3 class="setting-title">终端设置</h3>
+                        <p class="setting-description">选择启动 Claude 时使用的终端</p>
+                        <div class="preset-buttons" role="group" aria-label="终端预设">
+                            <button class="btn btn-preset terminal-btn" data-terminal="powershell" aria-label="PowerShell">
+                                <span aria-hidden="true">💻</span> PowerShell
+                            </button>
+                            <button class="btn btn-preset terminal-btn" data-terminal="pwsh" aria-label="PowerShell Core">
+                                <span aria-hidden="true">⚡</span> PowerShell Core
+                            </button>
+                            <button class="btn btn-preset terminal-btn" data-terminal="cmd" aria-label="CMD">
+                                <span aria-hidden="true">📟</span> CMD
+                            </button>
+                        </div>
+                    </article>
+
+                    <article class="setting-card">
+                        <h3 class="setting-title">终端工作目录</h3>
+                        <p class="setting-description">设置终端启动时的默认目录</p>
+                        <div class="setting-input-group">
+                            <label for="terminal-dir-input" class="sr-only">工作目录路径</label>
+                            <input type="text" id="terminal-dir-input" class="setting-input" readonly aria-readonly="true">
+                            <button class="btn btn-secondary" id="browse-terminal-dir-btn" aria-label="浏览文件夹">浏览</button>
+                        </div>
+                    </article>
+
+                    <article class="setting-card">
+                        <h3 class="setting-title">主题设置</h3>
+                        <p class="setting-description">选择应用的外观主题</p>
+                        <div class="preset-buttons" role="group" aria-label="主题选择">
+                            <button class="btn btn-preset theme-btn" data-theme="dark" aria-label="深色主题">
+                                <span aria-hidden="true">🌙</span> 深色主题
+                            </button>
+                            <button class="btn btn-preset theme-btn" data-theme="light" aria-label="浅色主题">
+                                <span aria-hidden="true">☀️</span> 浅色主题
+                            </button>
+                        </div>
+                    </article>
+
+                    <article class="setting-card">
+                        <h3 class="setting-title">语言设置</h3>
+                        <p class="setting-description">选择应用的显示语言</p>
+                        <div class="preset-buttons" role="group" aria-label="语言选择">
+                            <button class="btn btn-preset language-btn" data-language="zh-CN" aria-label="简体中文">
+                                <span aria-hidden="true">🌏</span> 简体中文
+                            </button>
+                            <button class="btn btn-preset language-btn" data-language="en-US" aria-label="English">
+                                <span aria-hidden="true">🌍</span> English
+                            </button>
+                        </div>
+                    </article>
+
+                    <article class="setting-card">
+                        <h3 class="setting-title">关于</h3>
+                        <p class="about-text">
+                            Claude 渠道切换器 v3.0.0<br><br>
+                            基于 Electron 开发<br>
+                            采用现代 Web 技术<br>
+                            流畅的动画和交互体验
+                        </p>
+                    </article>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal" id="channel-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 class="modal-title" id="modal-title">新建渠道</h3>
+                <button class="modal-close" id="modal-close-btn" aria-label="关闭对话框">✕</button>
+            </header>
+            <form class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="channel-name-input">渠道名称</label>
+                    <input type="text" id="channel-name-input" class="form-input" placeholder="例如：官方、代理1、备用渠道" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="channel-token-input">API Token</label>
+                    <input type="password" id="channel-token-input" class="form-input" placeholder="sk-ant-xxxxx..." required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="channel-url-input">Base URL</label>
+                    <input type="url" id="channel-url-input" class="form-input" placeholder="https://api.anthropic.com">
+                </div>
+            </form>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel-btn" type="button">取消</button>
+                <button class="btn btn-primary" id="modal-save-btn" type="button">保存</button>
+            </footer>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
