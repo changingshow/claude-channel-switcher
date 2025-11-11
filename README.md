@@ -15,7 +15,6 @@
 
 ### 安装依赖
 ```bash
-cd electron-app
 npm install
 ```
 
