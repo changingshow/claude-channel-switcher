@@ -1,8 +1,22 @@
-# Claude 渠道切换器 - Electron 版 v3.0
+# Claude 渠道切换器
 
-一个使用 Electron 构建的现代化 Claude API 渠道管理工具。
+一个现代化的 Claude API 渠道管理工具，提供流畅的渠道切换体验。
 
-## ✨ 特性
+## 📦 两个版本
+
+本项目提供两个版本，功能相同，技术栈不同：
+
+### Electron 版本
+- **技术栈**: Electron + JavaScript
+- **目录**: 项目根目录
+- **特点**: 成熟稳定，生态丰富
+
+### Tauri 版本
+- **技术栈**: Tauri v2 + Rust + JavaScript
+- **目录**: `tauri-app/`
+- **特点**: 更轻量、更安全、更快速（安装包 ~5MB vs ~150MB）
+
+## ✨ 核心功能
 
 - 🎨 现代化的玻璃态设计
 - 🌊 流畅的动画效果
@@ -10,38 +24,44 @@
 - 🚀 快速渠道切换
 - ⚙️ 自定义终端配置
 - 💾 本地配置存储
+- 🌓 深色/浅色主题
+- 🌍 多语言支持（中文/英文）
 
 ## 🚀 快速开始
 
-### 安装依赖
+### Electron 版本
+
 ```bash
+# 安装依赖
 npm install
-```
 
-### 启动应用
-```bash
+# 启动应用
 npm start
-```
 
-### 构建应用（可选）
-```bash
+# 构建应用
 npm run build
 ```
 
-## 🔄 重新加载应用
+### Tauri 版本
 
-如果你修改了代码并想查看更新：
+```bash
+# 进入 Tauri 目录
+cd tauri-app
 
-### 方法 1：重启应用
-1. 关闭当前运行的应用窗口
-2. 在终端中再次运行 `npm start`
+# 安装依赖
+npm install
 
-### 方法 2：开发者工具重新加载
-1. 在应用窗口中按 `Ctrl+Shift+I` 打开开发者工具
-2. 按 `Ctrl+R` 或 `F5` 重新加载页面
+# 启动开发模式
+npm run dev
 
-### 方法 3：修改 main.js 支持热重载（推荐）
-在开发时，可以按 `Ctrl+R` 直接重新加载窗口。
+# 构建安装包
+npm run build
+```
+
+**前置要求（Tauri 版本）**:
+- Rust 1.70+ ([下载安装](https://www.rust-lang.org/tools/install))
+- Node.js 18+ ([下载安装](https://nodejs.org/))
+- WebView2 (Windows 10/11 通常已预装)
 
 ## 📖 使用说明
 
@@ -64,48 +84,61 @@ npm run build
 2. 可以修改：
    - 配置文件路径
    - 启动终端类型
+   - 终端工作目录
+   - 主题（深色/浅色）
+   - 语言（中文/英文）
+
+## 📊 版本对比
+
+| 指标 | Tauri 版 | Electron 版 |
+|------|---------|------------|
+| **安装包大小** | ~5MB | ~150MB |
+| **内存占用** | ~30-50MB | ~150-200MB |
+| **启动时间** | < 1秒 | 2-3秒 |
+| **CPU 占用** | 低 | 中等 |
+| **安全性** | 高（Rust） | 一般 |
 
 ## 🛠 技术栈
 
+### Electron 版本
 - **Electron** - 跨平台桌面应用框架
 - **原生 JavaScript** - 无需额外框架
+- **CSS3** - 现代化样式和动画
+
+### Tauri 版本
+- **Tauri v2** - 跨平台桌面应用框架
+- **Rust** - 系统编程，内存安全
+- **JavaScript** - 前端逻辑
 - **CSS3** - 现代化样式和动画
 
 ## 📝 项目结构
 
 ```
 electron-app/
-├── main.js           # Electron 主进程（后端）
-├── package.json      # 项目配置
-├── src/
-│   ├── index.html    # 应用界面
-│   ├── styles.css    # 样式文件
-│   └── app.js        # 渲染进程逻辑（前端）
+├── src/                    # Electron 版本前端代码
+│   ├── index.html
+│   ├── app.js
+│   ├── styles.css
+│   └── i18n.js
+├── main.js                 # Electron 主进程
+├── package.json
+│
+└── tauri-app/              # Tauri 版本
+    ├── src/                # 前端代码
+    │   ├── index.html
+    │   ├── js/
+    │   ├── styles.css
+    │   └── i18n.js
+    ├── src-tauri/          # Rust 后端
+    │   ├── src/main.rs
+    │   ├── Cargo.toml
+    │   └── tauri.conf.json
+    └── package.json
 ```
 
-## 🐛 问题修复记录
+## 🔗 相关链接
 
-### v3.0.1
-- ✅ 修复了渠道卡片悬停时字体模糊的问题
-  - 优化了 `backdrop-filter` 模糊值（20px → 10px）
-  - 使用 `translate3d` 启用硬件加速
-  - 添加了字体抗锯齿设置
-
-- ✅ 修复了新建渠道按钮与窗口控制按钮重叠
-  - 调整了主内容区域的上边距
-
-## 💡 开发技巧
-
-### 调试技巧
-1. 打开开发者工具：`Ctrl+Shift+I`
-2. 查看控制台日志
-3. 检查网络请求
-4. 调试 CSS 样式
-
-### 性能优化
-- 使用 `will-change` 提示浏览器优化动画
-- 使用 `translate3d` 启用 GPU 加速
-- 减少 `backdrop-filter` 模糊值提升性能
+- **GitHub 主页**: [https://github.com/changingshow/claude-channel-switcher](https://github.com/changingshow/claude-channel-switcher)
 
 ## 📄 许可证
 
