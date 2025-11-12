@@ -1,0 +1,27 @@
+{
+  "name": "claude-channel-switcher-tauri",
+  "version": "3.0.0",
+  "description": "Claude 渠道切换器 - Tauri 版",
+  "main": "src/index.html",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "keywords": [
+    "claude",
+    "channel",
+    "switcher",
+    "tauri"
+  ],
+  "author": "changingshow",
+  "license": "MIT",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0"
+  }
+}

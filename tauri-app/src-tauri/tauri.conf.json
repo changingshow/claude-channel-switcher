@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Claude渠道切换器",
+  "version": "3.0.0",
+  "identifier": "com.claude.channelswitcher",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "changingshow",
+    "icon": [
+    "icons/icon.ico",
+    "icons/32x32.png",
+    "icons/128x128.png",
+    "icons/128x128@2x.png",
+    "icons/icon.icns"
+    ],
+      "windows": {
+        "nsis": {
+          "installerIcon": "icons/icon.ico" 
+        }
+      }
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "Claude渠道切换器",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 1000,
+        "minHeight": 650,
+        "label": "main",
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' tauri: asset: http://asset.localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline"
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
+  }
+}

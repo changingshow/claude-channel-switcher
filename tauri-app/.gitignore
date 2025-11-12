@@ -1,0 +1,32 @@
+# Tauri
+/src-tauri/target
+/src-tauri/Cargo.lock
+
+# Node
+node_modules
+package-lock.json
+
+# Build
+dist
+*.exe
+*.dmg
+*.app
+*.AppImage
+*.deb
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

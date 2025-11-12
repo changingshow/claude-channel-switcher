@@ -86,7 +86,7 @@ const translations = {
             },
             about: {
                 title: '关于',
-                text: 'Claude 渠道切换器 v3.0.0\n\n基于 Electron 开发\n采用现代 Web 技术\n流畅的动画和交互体验',
+                text: 'Claude 渠道切换器 v3.0.0\n\n基于 Tauri 开发\n采用 Rust + Web 技术\n更轻量、更安全、更快速',
                 githubLink: '🔗 GitHub 主页'
             }
         },
@@ -213,7 +213,7 @@ const translations = {
             },
             about: {
                 title: 'About',
-                text: 'Claude Channel Switcher v3.0.0\n\nBuilt with Electron\nModern Web Technologies\nSmooth Animations & Interactions',
+                text: 'Claude Channel Switcher v3.0.0\n\nBuilt with Tauri\nRust + Web Technologies\nLighter, Safer, Faster',
                 githubLink: '🔗 GitHub Homepage'
             }
         },
@@ -306,7 +306,3 @@ class I18n {
 }
 
 const i18n = new I18n();
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = i18n;
-}

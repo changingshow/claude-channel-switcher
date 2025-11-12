@@ -74,12 +74,19 @@ body.light-theme {
     --card-bg: #ffffff;
 }
 
+:root {
+    color-scheme: dark;
+}
+
+body.light-theme {
+    color-scheme: light;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
     background: var(--bg-secondary);
     color: var(--text-primary);
     overflow: hidden;
-    -webkit-app-region: drag;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -88,9 +95,136 @@ button, input, .channels-container, .settings-container, .main-content {
     -webkit-app-region: no-drag;
 }
 
+/* 自定义标题栏 - 系统风格 */
+.titlebar {
+    height: 40px;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    -webkit-app-region: drag;
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+    transition: background var(--transition-standard);
+}
+
+.titlebar-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding-left: 12px;
+    -webkit-app-region: drag;
+    flex: 1;
+}
+
+.titlebar-controls {
+    display: flex;
+    -webkit-app-region: no-drag;
+}
+
+.titlebar-button {
+    width: 46px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease;
+    -webkit-app-region: no-drag;
+    padding: 0;
+    position: relative;
+}
+
+/* 使用伪元素创建小的 hover 效果，只覆盖图标区域 */
+.titlebar-button::before {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: transparent;
+    transition: background-color 0.15s ease;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+}
+
+.titlebar-button:hover::before {
+    background: var(--bg-tertiary);
+}
+
+.titlebar-button-close:hover::before {
+    background: var(--danger);
+}
+
+.titlebar-button-close:hover {
+    color: #ffffff;
+}
+
+/* 确保按钮符号在 hover 效果之上 */
+.titlebar-button span {
+    line-height: 1;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+/* 最小化按钮图标 */
+.titlebar-button#titlebar-minimize span {
+    font-size: 16px;
+    font-weight: 400;
+    margin-top: -2px;
+}
+
+/* 最大化按钮 - 使用 CSS 绘制方框 */
+.titlebar-button#titlebar-maximize {
+    position: relative;
+}
+
+.titlebar-button#titlebar-maximize .maximize-icon {
+    display: block;
+    width: 12px;
+    height: 12px;
+    position: relative;
+}
+
+.titlebar-button#titlebar-maximize .maximize-icon::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid currentColor;
+    border-radius: 1px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+}
+
+/* 隐藏原始字符 */
+.titlebar-button#titlebar-maximize .maximize-icon {
+    font-size: 0;
+    line-height: 0;
+}
+
+/* 关闭按钮图标 */
+.titlebar-button-close span {
+    font-size: 16px;
+    font-weight: 400;
+}
+
 .app-container {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - 40px);
     width: 100vw;
 }
 

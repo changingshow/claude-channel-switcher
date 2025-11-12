@@ -547,7 +547,10 @@ function updateSettingsPageLanguage() {
 
             const aboutText = card.querySelector('.about-text');
             if (aboutText) {
-                aboutText.innerHTML = i18n.t('settings.about.text').replace(/\n/g, '<br>');
+                const githubLink = aboutText.querySelector('.github-link');
+                const githubLinkHtml = githubLink ? githubLink.outerHTML : '';
+                aboutText.innerHTML = i18n.t('settings.about.text').replace(/\n/g, '<br>') + '<br><br>' + 
+                    (githubLinkHtml || `<a href="https://github.com/changingshow/claude-channel-switcher" target="_blank" rel="noopener noreferrer" class="github-link"><span aria-hidden="true">🔗</span> ${i18n.t('settings.about.githubLink')}</a>`);
             }
         }
     });

@@ -4,10 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Claude API 渠道管理和切换工具">
+    <meta name="theme-color" content="#28282b">
     <title>Claude 渠道切换器</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- 自定义标题栏 -->
+    <div class="titlebar" data-tauri-drag-region>
+        <div class="titlebar-title" data-tauri-drag-region>Claude 渠道切换器</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-button" id="titlebar-minimize" aria-label="最小化" title="最小化">
+                <span>−</span>
+            </button>
+            <button class="titlebar-button" id="titlebar-maximize" aria-label="最大化" title="最大化">
+                <span class="maximize-icon"></span>
+            </button>
+            <button class="titlebar-button titlebar-button-close" id="titlebar-close" aria-label="关闭" title="关闭">
+                <span>×</span>
+            </button>
+        </div>
+    </div>
     <div class="app-container">
         <aside class="sidebar" role="complementary">
             <header class="logo">
@@ -123,9 +139,9 @@
                         <h3 class="setting-title">关于</h3>
                         <p class="about-text">
                             Claude 渠道切换器 v3.0.0<br><br>
-                            基于 Electron 开发<br>
-                            采用现代 Web 技术<br>
-                            流畅的动画和交互体验<br><br>
+                            基于 Tauri 开发<br>
+                            采用 Rust + Web 技术<br>
+                            更轻量、更安全、更快速<br><br>
                             <a href="https://github.com/changingshow/claude-channel-switcher" target="_blank" rel="noopener noreferrer" class="github-link">
                                 <span aria-hidden="true">🔗</span> GitHub 主页
                             </a>
@@ -165,6 +181,31 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- 国际化模块 -->
+    <script src="i18n.js"></script>
+    
+    <!-- 工具模块 -->
+    <script src="js/utils/error.js"></script>
+    <script src="js/utils/debounce.js"></script>
+    <script src="js/utils/dom.js"></script>
+    <script src="js/utils/validation.js"></script>
+    
+    <!-- 核心模块 -->
+    <script src="js/core/api.js"></script>
+    <script src="js/core/state.js"></script>
+    
+    <!-- UI 模块 -->
+    <script src="js/ui/toast.js"></script>
+    <script src="js/ui/modal.js"></script>
+    <script src="js/ui/navigation.js"></script>
+    <script src="js/ui/titlebar.js"></script>
+    
+    <!-- 功能模块 -->
+    <script src="js/features/theme.js"></script>
+    <script src="js/features/channels.js"></script>
+    <script src="js/features/settings.js"></script>
+    
+    <!-- 主入口 -->
     <script src="app.js"></script>
 </body>
 </html>
