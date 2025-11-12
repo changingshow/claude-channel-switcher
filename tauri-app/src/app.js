@@ -90,12 +90,23 @@ function setupEventListeners() {
 
 /**
  * 更新 UI 语言
+ * 全局函数，可在任何地方调用
  */
 function updateUILanguage() {
     document.title = i18n.t('app.title');
+    
+    // 更新 meta description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+        metaDescription.setAttribute('content', i18n.t('app.description'));
+    }
 
+    titlebar.updateLanguage();
     navigation.updateLanguage();
     channels.updateLanguage();
     settings.updateLanguage();
     modal.updateLanguage();
 }
+
+// 将函数暴露到全局作用域，以便其他模块可以调用
+window.updateUILanguage = updateUILanguage;

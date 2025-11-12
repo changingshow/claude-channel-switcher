@@ -35,8 +35,19 @@ class NavigationManager {
      * 更新导航语言
      */
     updateLanguage() {
-        document.querySelector('.logo-text').innerHTML = i18n.t('app.title').replace(' ', '<br>');
-        document.querySelector('.version').textContent = i18n.t('app.version');
+        const logoText = document.querySelector('.logo-text');
+        if (logoText) {
+            // 处理标题，将第一个空格替换为换行
+            const title = i18n.t('app.title');
+            // 英文：Claude Channel Switcher -> Claude<br>Channel Switcher
+            // 中文：Claude 渠道切换器 -> Claude<br>渠道切换器
+            logoText.innerHTML = title.replace(' ', '<br>');
+        }
+        
+        const version = document.querySelector('.version');
+        if (version) {
+            version.textContent = i18n.t('app.version');
+        }
 
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
@@ -45,7 +56,8 @@ class NavigationManager {
             if (textSpan) {
                 textSpan.textContent = i18n.t(`nav.${page}`);
             }
-            item.setAttribute('aria-label', i18n.t(`aria.${page}Page`));
+            const ariaKey = page === 'channels' ? 'channelManagement' : 'settingsPage';
+            item.setAttribute('aria-label', i18n.t(`aria.${ariaKey}`));
         });
     }
 }

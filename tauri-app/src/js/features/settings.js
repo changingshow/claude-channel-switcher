@@ -169,7 +169,26 @@ class SettingsManager {
         state.save('language', selectedLanguage);
         i18n.setLanguage(state.language);
         DOMUtils.updateButtonGroup('.language-btn', 'language', state.language);
-        this.updateLanguage();
+        
+        // 更新所有 UI 组件的语言
+        if (typeof updateUILanguage === 'function') {
+            updateUILanguage();
+        } else {
+            // 如果全局函数不可用，手动更新所有模块
+            this.updateLanguage();
+            if (typeof titlebar !== 'undefined' && titlebar.updateLanguage) {
+                titlebar.updateLanguage();
+            }
+            if (typeof navigation !== 'undefined' && navigation.updateLanguage) {
+                navigation.updateLanguage();
+            }
+            if (typeof channels !== 'undefined' && channels.updateLanguage) {
+                channels.updateLanguage();
+            }
+            if (typeof modal !== 'undefined' && modal.updateLanguage) {
+                modal.updateLanguage();
+            }
+        }
 
         const langName = selectedLanguage === 'zh-CN' ? '简体中文' : 'English';
         toast.show(i18n.t('messages.languageChanged', { language: langName }));

@@ -2,7 +2,8 @@ const translations = {
     'zh-CN': {
         app: {
             title: 'Claude 渠道切换器',
-            version: 'v3.0.0'
+            version: 'v3.0.0',
+            description: 'Claude API 渠道管理和切换工具'
         },
         nav: {
             channels: '渠道管理',
@@ -123,13 +124,17 @@ const translations = {
             mainNav: '主导航',
             themeSelection: '主题选择',
             languageSelection: '语言选择',
-            terminalPresets: '终端预设'
+            terminalPresets: '终端预设',
+            minimize: '最小化',
+            maximize: '最大化',
+            close: '关闭'
         }
     },
     'en-US': {
         app: {
             title: 'Claude Channel Switcher',
-            version: 'v3.0.0'
+            version: 'v3.0.0',
+            description: 'Claude API channel management and switching tool'
         },
         nav: {
             channels: 'Channels',
@@ -250,7 +255,10 @@ const translations = {
             mainNav: 'Main navigation',
             themeSelection: 'Theme selection',
             languageSelection: 'Language selection',
-            terminalPresets: 'Terminal presets'
+            terminalPresets: 'Terminal presets',
+            minimize: 'Minimize',
+            maximize: 'Maximize',
+            close: 'Close'
         }
     }
 };

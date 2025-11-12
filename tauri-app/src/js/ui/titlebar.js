@@ -73,6 +73,37 @@ class TitlebarManager {
             });
         }
     }
+
+    /**
+     * 更新标题栏语言
+     */
+    updateLanguage() {
+        const titlebarTitle = document.querySelector('.titlebar-title');
+        if (titlebarTitle) {
+            titlebarTitle.textContent = i18n.t('app.title');
+        }
+
+        const minimizeBtn = document.getElementById('titlebar-minimize');
+        if (minimizeBtn) {
+            const label = i18n.t('aria.minimize');
+            minimizeBtn.setAttribute('aria-label', label);
+            minimizeBtn.setAttribute('title', label);
+        }
+
+        const maximizeBtn = document.getElementById('titlebar-maximize');
+        if (maximizeBtn) {
+            const label = i18n.t('aria.maximize');
+            maximizeBtn.setAttribute('aria-label', label);
+            maximizeBtn.setAttribute('title', label);
+        }
+
+        const closeBtn = document.getElementById('titlebar-close');
+        if (closeBtn) {
+            const label = i18n.t('aria.close');
+            closeBtn.setAttribute('aria-label', label);
+            closeBtn.setAttribute('title', label);
+        }
+    }
 }
 
 // 创建全局实例
