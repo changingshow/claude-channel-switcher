@@ -26,26 +26,26 @@ const Validation = {
         if (!token || !token.trim()) {
             return { valid: false, error: 'messages.errorTokenRequired' };
         }
-        if (!token.startsWith('sk-ant-')) {
-            return { valid: false, error: 'API Token 格式不正确，应以 sk-ant- 开头' };
-        }
         return { valid: true };
     },
 
     /**
-     * 验证 URL（可选）
+     * 验证 URL（必填，必须是 http 或 https）
      * @param {string} url - URL 地址
      * @returns {{valid: boolean, error?: string}} 验证结果
      */
     validateUrl(url) {
         if (!url || !url.trim()) {
-            return { valid: true }; // URL 是可选的
+            return { valid: false, error: 'messages.errorUrlRequired' };
         }
         try {
-            new URL(url);
+            const urlObj = new URL(url);
+            if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+                return { valid: false, error: 'messages.errorUrlInvalid' };
+            }
             return { valid: true };
         } catch {
-            return { valid: false, error: 'URL 格式不正确' };
+            return { valid: false, error: 'messages.errorUrlInvalid' };
         }
     }
 };

@@ -123,13 +123,38 @@ async function handleSaveChannel() {
     const token = elements.channelTokenInput.value.trim();
     const url = elements.channelUrlInput.value.trim();
 
+    // 验证渠道名称
     if (!name) {
         showToast(i18n.t('messages.errorNameRequired'), 'error');
         return;
     }
 
+    // 检查渠道名称是否重复（编辑时排除当前渠道）
+    if (state.channels[name] && state.editingChannel !== name) {
+        showToast(i18n.t('messages.errorNameDuplicate'), 'error');
+        return;
+    }
+
+    // 验证 API Token
     if (!token) {
         showToast(i18n.t('messages.errorTokenRequired'), 'error');
+        return;
+    }
+
+    // 验证 Base URL
+    if (!url) {
+        showToast(i18n.t('messages.errorUrlRequired'), 'error');
+        return;
+    }
+
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+            showToast(i18n.t('messages.errorUrlInvalid'), 'error');
+            return;
+        }
+    } catch {
+        showToast(i18n.t('messages.errorUrlInvalid'), 'error');
         return;
     }
 

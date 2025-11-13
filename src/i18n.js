@@ -110,6 +110,9 @@ const translations = {
             errorNameRequired: '请输入渠道名称',
             errorTokenRequired: '请输入 API Token',
             errorTerminalRequired: '请输入终端命令',
+            errorUrlRequired: 'Base URL 不能为空',
+            errorUrlInvalid: 'Base URL 必须是 http 或 https 标准链接',
+            errorNameDuplicate: '渠道名称已存在，请使用其他名称',
             confirmDelete: '确定要删除渠道「{name}」吗？'
         },
         aria: {
@@ -237,6 +240,9 @@ const translations = {
             errorNameRequired: 'Please enter channel name',
             errorTokenRequired: 'Please enter API Token',
             errorTerminalRequired: 'Please enter terminal command',
+            errorUrlRequired: 'Base URL cannot be empty',
+            errorUrlInvalid: 'Base URL must be a standard http or https link',
+            errorNameDuplicate: 'Channel name already exists, please use another name',
             confirmDelete: 'Are you sure you want to delete channel "{name}"?'
         },
         aria: {

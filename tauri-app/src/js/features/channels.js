@@ -249,22 +249,31 @@ class ChannelManager {
         const formData = modal.getFormData();
         const { name, token, url } = formData;
 
-        // 验证
+        // 验证渠道名称
         const nameValidation = Validation.validateChannelName(name);
         if (!nameValidation.valid) {
             toast.show(i18n.t(nameValidation.error));
             return;
         }
 
+        // 检查渠道名称是否重复（编辑时排除当前渠道）
+        const trimmedName = name.trim();
+        if (state.channels[trimmedName] && state.editingChannel !== trimmedName) {
+            toast.show(i18n.t('messages.errorNameDuplicate'));
+            return;
+        }
+
+        // 验证 API Token
         const tokenValidation = Validation.validateToken(token);
         if (!tokenValidation.valid) {
             toast.show(i18n.t(tokenValidation.error));
             return;
         }
 
+        // 验证 Base URL
         const urlValidation = Validation.validateUrl(url);
         if (!urlValidation.valid) {
-            toast.show(urlValidation.error);
+            toast.show(i18n.t(urlValidation.error));
             return;
         }
 
