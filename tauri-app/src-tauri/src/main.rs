@@ -170,45 +170,65 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
 #[tauri::command]
 async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()> {
     use std::process::Command;
-    
+
+    if terminal == "wt" {
+        if !check_windows_terminal_installed() {
+            return ApiResponse::error(
+                "Windows Terminal 未安装。请从 Microsoft Store 安装 Windows Terminal，或选择其他终端。".to_string()
+            );
+        }
+    }
+
     let result = if cfg!(target_os = "windows") {
         match terminal.as_str() {
+            "wt" => {
+                Command::new("cmd")
+                    .args(&[
+                        "/C",
+                        "start",
+                        "wt",
+                        "-d",
+                        &terminal_dir,
+                        "pwsh",
+                        "-NoExit",
+                        "-Command",
+                        "claude"
+                    ])
+                    .spawn()
+            },
             "powershell" | "pwsh" => {
-                // PowerShell/PowerShell Core: 转义路径中的特殊字符
                 let escaped_dir = terminal_dir.replace("'", "''");
                 Command::new("cmd")
                     .args(&[
-                        "/C", 
-                        "start", 
-                        &terminal, 
-                        "-NoExit", 
-                        "-Command", 
+                        "/C",
+                        "start",
+                        &terminal,
+                        "-NoExit",
+                        "-Command",
                         &format!("Set-Location '{}'; claude", escaped_dir)
                     ])
                     .spawn()
             },
             "cmd" => {
-                // CMD: 使用 /k 保持窗口打开
                 Command::new("cmd")
                     .args(&[
-                        "/C", 
-                        "start", 
-                        "cmd", 
-                        "/k", 
+                        "/C",
+                        "start",
+                        "cmd",
+                        "/k",
                         &format!("cd /d \"{}\" && claude", terminal_dir)
                     ])
                     .spawn()
             },
             _ => {
-                // 默认使用 PowerShell 风格
                 let escaped_dir = terminal_dir.replace("'", "''");
                 Command::new("cmd")
                     .args(&[
-                        "/C", 
-                        "start", 
-                        &terminal, 
-                        "-NoExit", 
-                        "-Command", 
+                        "/C",
+                        "start",
+                        &terminal,
+                        "-NoExit",
+                        "-Command",
                         &format!("Set-Location '{}'; claude", escaped_dir)
                     ])
                     .spawn()
@@ -220,10 +240,36 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
             .arg(&format!("cd '{}' && claude", terminal_dir))
             .spawn()
     };
-    
+
     match result {
         Ok(_) => ApiResponse::success(),
         Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
+fn check_windows_terminal_installed() -> bool {
+    if cfg!(target_os = "windows") {
+        use std::process::Command;
+        if let Ok(output) = Command::new("where").arg("wt").output() {
+            return output.status.success() && !output.stdout.is_empty();
+        }
+    }
+    false
+}
+
+#[tauri::command]
+async fn check_terminal_available(terminal: String) -> ApiResponse<bool> {
+    let available = match terminal.as_str() {
+        "wt" => check_windows_terminal_installed(),
+        _ => true,
+    };
+
+    ApiResponse {
+        success: true,
+        error: None,
+        channels: None,
+        config: None,
+        data: Some(available),
     }
 }
 
@@ -278,6 +324,7 @@ fn main() {
             delete_channel,
             switch_channel,
             launch_claude,
+            check_terminal_available,
             get_home_dir,
             window_minimize,
             window_maximize,

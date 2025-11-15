@@ -80,7 +80,12 @@ class TitlebarManager {
     updateLanguage() {
         const titlebarTitle = document.querySelector('.titlebar-title');
         if (titlebarTitle) {
-            titlebarTitle.textContent = i18n.t('app.title');
+            const span = titlebarTitle.querySelector('span');
+            if (span) {
+                span.textContent = i18n.t('app.title');
+            } else {
+                titlebarTitle.textContent = i18n.t('app.title');
+            }
         }
 
         const minimizeBtn = document.getElementById('titlebar-minimize');

@@ -106,6 +106,15 @@ class TauriAPI {
     }
 
     /**
+     * 检查终端是否可用
+     * @param {string} terminal - 终端类型
+     * @returns {Promise<ApiResponse>} 检查结果
+     */
+    async checkTerminalAvailable(terminal) {
+        return await this.safeInvoke('check_terminal_available', { terminal });
+    }
+
+    /**
      * 获取用户主目录
      * @returns {Promise<string>} 主目录路径
      */

@@ -74,6 +74,7 @@ const translations = {
                 save: '保存',
                 label: '终端命令',
                 presets: {
+                    wt: 'Windows Terminal',
                     powershell: 'PowerShell',
                     pwsh: 'PowerShell Core',
                     cmd: 'CMD'
@@ -208,6 +209,7 @@ const translations = {
                 save: 'Save',
                 label: 'Terminal command',
                 presets: {
+                    wt: 'Windows Terminal',
                     powershell: 'PowerShell',
                     pwsh: 'PowerShell Core',
                     cmd: 'CMD'

@@ -5,7 +5,7 @@
 class AppState {
     constructor() {
         this.configPath = '';
-        this.terminal = localStorage.getItem('terminal') || 'powershell';
+        this.terminal = localStorage.getItem('terminal') || 'wt';
         this.terminalDir = '';
         this.theme = localStorage.getItem('theme') || 'dark';
         this.language = localStorage.getItem('language') || 'zh-CN';

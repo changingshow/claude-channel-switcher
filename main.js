@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 
 let mainWindow;
 
@@ -156,14 +156,56 @@ ipcMain.handle('select-directory', async () => {
 
 ipcMain.handle('launch-claude', async (event, terminal, terminalDir) => {
   try {
-    const command = `Set-Location -Path '${terminalDir.replace(/'/g, "''")}'; claude`;
+    if (terminal === 'wt') {
+      const isInstalled = await checkWindowsTerminalInstalled();
+      if (!isInstalled) {
+        return {
+          success: false,
+          error: 'Windows Terminal 未安装。请从 Microsoft Store 安装 Windows Terminal，或选择其他终端。'
+        };
+      }
+    }
 
-    spawn(terminal, ['-Command', command], {
+    let args;
+
+    if (terminal === 'wt') {
+      args = ['-d', terminalDir, 'pwsh', '-NoExit', '-Command', 'claude'];
+    } else if (terminal === 'powershell' || terminal === 'pwsh') {
+      const command = `Set-Location -Path '${terminalDir.replace(/'/g, "''")}'; claude`;
+      args = ['-NoExit', '-Command', command];
+    } else if (terminal === 'cmd') {
+      args = ['/K', `cd /d "${terminalDir}" && claude`];
+    } else {
+      const command = `Set-Location -Path '${terminalDir.replace(/'/g, "''")}'; claude`;
+      args = ['-Command', command];
+    }
+
+    spawn(terminal, args, {
       detached: true,
       stdio: 'ignore',
       shell: true
     });
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+function checkWindowsTerminalInstalled() {
+  return new Promise((resolve) => {
+    exec('where wt', (error, stdout, stderr) => {
+      resolve(!error && stdout.trim().length > 0);
+    });
+  });
+}
+
+ipcMain.handle('check-terminal-available', async (event, terminal) => {
+  try {
+    if (terminal === 'wt') {
+      const isInstalled = await checkWindowsTerminalInstalled();
+      return { success: true, available: isInstalled };
+    }
+    return { success: true, available: true };
   } catch (error) {
     return { success: false, error: error.message };
   }

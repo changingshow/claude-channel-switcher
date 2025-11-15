@@ -9,7 +9,7 @@ const REFRESH_ANIMATION_DURATION = 300;
 
 const state = {
     configPath: localStorage.getItem('configPath') || DEFAULT_CONFIG_PATH,
-    terminal: localStorage.getItem('terminal') || 'powershell',
+    terminal: localStorage.getItem('terminal') || 'wt',
     terminalDir: localStorage.getItem('terminalDir') || os.homedir(),
     theme: localStorage.getItem('theme') || 'dark',
     language: localStorage.getItem('language') || 'zh-CN',
@@ -188,6 +188,7 @@ function setupSettings() {
     updateTerminalButtons();
     updateThemeButtons();
     updateLanguageButtons();
+    checkTerminalAvailability();
 
     browseBtn.addEventListener('click', () => handleBrowsePath(pathInput));
     browseTerminalDirBtn.addEventListener('click', () => handleBrowseTerminalDir(terminalDirInput));
@@ -203,6 +204,17 @@ function setupSettings() {
     languageButtons.forEach(btn => {
         btn.addEventListener('click', () => handleLanguageChange(btn.dataset.language));
     });
+}
+
+async function checkTerminalAvailability() {
+    const wtButton = document.querySelector('.terminal-btn[data-terminal="wt"]');
+    if (!wtButton) return;
+
+    const result = await ipcRenderer.invoke('check-terminal-available', 'wt');
+    if (result.success && !result.available) {
+        wtButton.style.opacity = '0.5';
+        wtButton.title = '未安装 Windows Terminal';
+    }
 }
 
 async function handleBrowsePath(pathInput) {

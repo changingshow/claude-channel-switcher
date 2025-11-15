@@ -116,6 +116,15 @@ button, input, .channels-container, .settings-container, .main-content {
     padding-left: 12px;
     -webkit-app-region: drag;
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.titlebar-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
 }
 
 .titlebar-controls {

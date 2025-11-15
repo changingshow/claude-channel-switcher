@@ -11,7 +11,10 @@
 <body>
     <!-- 自定义标题栏 -->
     <div class="titlebar" data-tauri-drag-region>
-        <div class="titlebar-title" data-tauri-drag-region>Claude 渠道切换器</div>
+        <div class="titlebar-title" data-tauri-drag-region>
+            <img src="assets/icon.png" alt="" class="titlebar-icon">
+            <span>Claude 渠道切换器</span>
+        </div>
         <div class="titlebar-controls">
             <button class="titlebar-button" id="titlebar-minimize" aria-label="最小化" title="最小化">
                 <span>−</span>
@@ -87,6 +90,9 @@
                         <h3 class="setting-title">终端设置</h3>
                         <p class="setting-description">选择启动 Claude 时使用的终端</p>
                         <div class="preset-buttons" role="group" aria-label="终端预设">
+                            <button class="btn btn-preset terminal-btn" data-terminal="wt" aria-label="Windows Terminal">
+                                <span aria-hidden="true">🪟</span> Windows Terminal
+                            </button>
                             <button class="btn btn-preset terminal-btn" data-terminal="powershell" aria-label="PowerShell">
                                 <span aria-hidden="true">💻</span> PowerShell
                             </button>

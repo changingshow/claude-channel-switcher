@@ -40,6 +40,26 @@ class SettingsManager {
         terminalButtons.forEach(btn => {
             btn.addEventListener('click', () => this.handleTerminalChange(btn.dataset.terminal));
         });
+
+        this.checkTerminalAvailability();
+    }
+
+    /**
+     * 检查终端可用性
+     */
+    async checkTerminalAvailability() {
+        const wtButton = document.querySelector('.terminal-btn[data-terminal="wt"]');
+        if (!wtButton) return;
+
+        try {
+            const result = await api.checkTerminalAvailable('wt');
+            if (result.success && result.data === false) {
+                wtButton.style.opacity = '0.5';
+                wtButton.title = '未安装 Windows Terminal';
+            }
+        } catch (error) {
+            console.error('检查终端可用性失败:', error);
+        }
     }
 
     /**
