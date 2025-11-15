@@ -171,6 +171,9 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
 async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()> {
     use std::process::Command;
 
+    #[cfg(target_os = "windows")]
+    use std::os::windows::process::CommandExt;
+
     if terminal == "wt" {
         if !check_windows_terminal_installed() {
             return ApiResponse::error(
@@ -180,6 +183,9 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
     }
 
     let result = if cfg!(target_os = "windows") {
+        #[cfg(target_os = "windows")]
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
         match terminal.as_str() {
             "wt" => {
                 Command::new("cmd")
@@ -194,6 +200,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                         "-Command",
                         "claude"
                     ])
+                    .creation_flags(CREATE_NO_WINDOW)
                     .spawn()
             },
             "powershell" | "pwsh" => {
@@ -207,6 +214,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                         "-Command",
                         &format!("Set-Location '{}'; claude", escaped_dir)
                     ])
+                    .creation_flags(CREATE_NO_WINDOW)
                     .spawn()
             },
             "cmd" => {
@@ -218,6 +226,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                         "/k",
                         &format!("cd /d \"{}\" && claude", terminal_dir)
                     ])
+                    .creation_flags(CREATE_NO_WINDOW)
                     .spawn()
             },
             _ => {
@@ -231,6 +240,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                         "-Command",
                         &format!("Set-Location '{}'; claude", escaped_dir)
                     ])
+                    .creation_flags(CREATE_NO_WINDOW)
                     .spawn()
             }
         }
@@ -250,7 +260,17 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
 fn check_windows_terminal_installed() -> bool {
     if cfg!(target_os = "windows") {
         use std::process::Command;
-        if let Ok(output) = Command::new("where").arg("wt").output() {
+
+        #[cfg(target_os = "windows")]
+        use std::os::windows::process::CommandExt;
+
+        #[cfg(target_os = "windows")]
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        if let Ok(output) = Command::new("where")
+            .arg("wt")
+            .creation_flags(CREATE_NO_WINDOW)
+            .output() {
             return output.status.success() && !output.stdout.is_empty();
         }
     }
