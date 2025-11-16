@@ -188,18 +188,13 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
 
         match terminal.as_str() {
             "wt" => {
-                Command::new("cmd")
-                    .args(&[
-                        "/C",
-                        "start",
-                        "wt",
-                        "-d",
-                        &terminal_dir,
-                        "pwsh",
-                        "-NoExit",
-                        "-Command",
-                        "claude"
-                    ])
+                Command::new("wt")
+                    .arg("-d")
+                    .arg(&terminal_dir)
+                    .arg("pwsh")
+                    .arg("-NoExit")
+                    .arg("-Command")
+                    .arg("claude")
                     .creation_flags(CREATE_NO_WINDOW)
                     .spawn()
             },
@@ -209,6 +204,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                     .args(&[
                         "/C",
                         "start",
+                        "\"\"",
                         &terminal,
                         "-NoExit",
                         "-Command",
@@ -222,6 +218,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                     .args(&[
                         "/C",
                         "start",
+                        "\"\"",
                         "cmd",
                         "/k",
                         &format!("cd /d \"{}\" && claude", terminal_dir)
@@ -235,6 +232,7 @@ async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()
                     .args(&[
                         "/C",
                         "start",
+                        "\"\"",
                         &terminal,
                         "-NoExit",
                         "-Command",
