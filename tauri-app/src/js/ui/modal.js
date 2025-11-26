@@ -20,6 +20,7 @@ class ModalManager {
         this.channelNameInput = document.getElementById('channel-name-input');
         this.channelTokenInput = document.getElementById('channel-token-input');
         this.channelUrlInput = document.getElementById('channel-url-input');
+        this.channelModelInput = document.getElementById('channel-model-input');
     }
 
     /**
@@ -27,12 +28,13 @@ class ModalManager {
      */
     openNew() {
         if (!this.modal) return;
-        
+
         state.editingChannel = null;
         this.modalTitle.textContent = i18n.t('modal.titleNew');
         this.channelNameInput.value = '';
         this.channelTokenInput.value = '';
         this.channelUrlInput.value = '';
+        this.channelModelInput.value = '';
         this.modal.classList.add('active');
     }
 
@@ -42,7 +44,7 @@ class ModalManager {
      */
     openEdit(name) {
         if (!this.modal) return;
-        
+
         const config = state.channels[name];
         if (!config) return;
 
@@ -51,6 +53,7 @@ class ModalManager {
         this.channelNameInput.value = name;
         this.channelTokenInput.value = config.env?.ANTHROPIC_AUTH_TOKEN || '';
         this.channelUrlInput.value = config.env?.ANTHROPIC_BASE_URL || '';
+        this.channelModelInput.value = config.model || '';
         this.modal.classList.add('active');
     }
 
@@ -71,7 +74,8 @@ class ModalManager {
         return {
             name: this.channelNameInput.value.trim(),
             token: this.channelTokenInput.value.trim(),
-            url: this.channelUrlInput.value.trim()
+            url: this.channelUrlInput.value.trim(),
+            model: this.channelModelInput.value.trim()
         };
     }
 

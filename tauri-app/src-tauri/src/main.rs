@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 struct ChannelConfig {
     env: HashMap<String, String>,
     permissions: Permissions,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model: Option<String>,
     #[serde(rename = "alwaysThinkingEnabled")]
     always_thinking_enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -107,6 +109,7 @@ async fn save_channel(
     channel_name: String,
     token: String,
     url: String,
+    model: String,
     old_name: String,
 ) -> ApiResponse<()> {
     let mut env = HashMap::new();
@@ -123,6 +126,7 @@ async fn save_channel(
             allow: vec![],
             deny: vec![],
         },
+        model: if model.is_empty() { None } else { Some(model) },
         always_thinking_enabled: true,
         mtime: None,
     };

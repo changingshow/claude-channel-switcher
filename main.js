@@ -86,21 +86,28 @@ ipcMain.handle('get-active-channel', async (event, configPath) => {
 
 ipcMain.handle('save-channel', async (event, configPath, channelName, data) => {
   try {
-    const config = {
-      env: {
-        ANTHROPIC_AUTH_TOKEN: data.token,
-        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
-      },
-      permissions: {
-        allow: [],
-        deny: []
-      },
-      alwaysThinkingEnabled: true
+    const env = {
+      ANTHROPIC_AUTH_TOKEN: data.token,
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
     };
 
     if (data.url) {
-      config.env.ANTHROPIC_BASE_URL = data.url;
+      env.ANTHROPIC_BASE_URL = data.url;
     }
+
+    const config = {
+      env,
+      permissions: {
+        allow: [],
+        deny: []
+      }
+    };
+
+    if (data.model) {
+      config.model = data.model;
+    }
+
+    config.alwaysThinkingEnabled = true;
 
     if (data.oldName && data.oldName !== channelName) {
       const oldFilePath = path.join(configPath, `settings-${data.oldName}.json`);

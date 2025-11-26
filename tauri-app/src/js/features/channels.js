@@ -21,8 +21,9 @@ class ChannelManager {
 
     /**
      * 加载渠道列表
+     * @param {boolean} skipActiveUpdate - 是否跳过激活状态更新
      */
-    async loadChannels() {
+    async loadChannels(skipActiveUpdate = false) {
         try {
             const result = await api.getChannels(state.configPath);
 
@@ -34,7 +35,9 @@ class ChannelManager {
             }
 
             state.channels = result.channels || {};
-            await this.updateActiveChannel();
+            if (!skipActiveUpdate) {
+                await this.updateActiveChannel();
+            }
             this.renderChannels();
         } catch (error) {
             ErrorHandler.handle(error, 'Load channels');
@@ -247,7 +250,7 @@ class ChannelManager {
      */
     async saveChannel() {
         const formData = modal.getFormData();
-        const { name, token, url } = formData;
+        const { name, token, url, model } = formData;
 
         // 验证渠道名称
         const nameValidation = Validation.validateChannelName(name);
@@ -283,13 +286,20 @@ class ChannelManager {
                 channelName: name,
                 token: token,
                 url: url || '',
+                model: model || '',
                 oldName: state.editingChannel || ''
             });
 
             if (result.success) {
+                const isEditingActiveChannel = state.editingChannel && state.editingChannel === state.activeChannelName;
+
+                if (isEditingActiveChannel) {
+                    state.activeChannelName = null;
+                }
+
                 toast.show(state.editingChannel ? i18n.t('messages.channelUpdated') : i18n.t('messages.channelCreated'));
                 modal.close();
-                await this.loadChannels();
+                await this.loadChannels(isEditingActiveChannel);
             } else {
                 ErrorHandler.showError(result.error, '保存失败');
             }

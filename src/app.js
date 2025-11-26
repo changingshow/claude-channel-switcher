@@ -41,6 +41,7 @@ function cacheElements() {
     elements.channelNameInput = document.getElementById('channel-name-input');
     elements.channelTokenInput = document.getElementById('channel-token-input');
     elements.channelUrlInput = document.getElementById('channel-url-input');
+    elements.channelModelInput = document.getElementById('channel-model-input');
     elements.channelsList = document.getElementById('channels-list');
     elements.channelCount = document.querySelector('.channel-count');
     elements.toast = document.getElementById('toast');
@@ -85,6 +86,7 @@ function openNewChannelModal() {
     elements.channelNameInput.value = '';
     elements.channelTokenInput.value = '';
     elements.channelUrlInput.value = '';
+    elements.channelModelInput.value = '';
     elements.modal.classList.add('active');
 }
 
@@ -122,6 +124,7 @@ async function handleSaveChannel() {
     const name = elements.channelNameInput.value.trim();
     const token = elements.channelTokenInput.value.trim();
     const url = elements.channelUrlInput.value.trim();
+    const model = elements.channelModelInput.value.trim();
 
     // 验证渠道名称
     if (!name) {
@@ -161,13 +164,20 @@ async function handleSaveChannel() {
     const result = await ipcRenderer.invoke('save-channel', state.configPath, name, {
         token,
         url,
+        model,
         oldName: state.editingChannel
     });
 
     if (result.success) {
+        const isEditingActiveChannel = state.editingChannel && state.editingChannel === state.activeChannelName;
+
+        if (isEditingActiveChannel) {
+            state.activeChannelName = null;
+        }
+
         showToast(state.editingChannel ? i18n.t('messages.channelUpdated') : i18n.t('messages.channelCreated'), 'success');
         closeModal();
-        loadChannels();
+        loadChannels(isEditingActiveChannel);
     } else {
         showToast(i18n.t('messages.errorSave', { error: result.error }), 'error');
     }
@@ -255,7 +265,7 @@ function handleThemeChange(selectedTheme) {
     showToast(i18n.t('messages.themeChanged', { theme: themeName }), 'success');
 }
 
-async function loadChannels() {
+async function loadChannels(skipActiveUpdate = false) {
     const result = await ipcRenderer.invoke('get-channels', state.configPath);
 
     if (!result.success) {
@@ -266,7 +276,9 @@ async function loadChannels() {
     }
 
     state.channels = result.channels;
-    await updateActiveChannel();
+    if (!skipActiveUpdate) {
+        await updateActiveChannel();
+    }
     renderChannels();
 }
 
@@ -384,6 +396,7 @@ function editChannel(name) {
     elements.channelNameInput.value = name;
     elements.channelTokenInput.value = config.env?.ANTHROPIC_AUTH_TOKEN || '';
     elements.channelUrlInput.value = config.env?.ANTHROPIC_BASE_URL || '';
+    elements.channelModelInput.value = config.model || '';
 
     elements.modal.classList.add('active');
 }

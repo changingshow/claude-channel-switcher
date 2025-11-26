@@ -177,6 +177,13 @@
                     <label class="form-label" for="channel-url-input">Base URL</label>
                     <input type="url" id="channel-url-input" class="form-input" placeholder="https://api.anthropic.com" required>
                 </div>
+                <div class="form-group">
+                    <label class="form-label" for="channel-model-input">自定义模型名称（可选）</label>
+                    <input type="text" id="channel-model-input" class="form-input" placeholder="例如：claude-sonnet-4-5-20250929">
+                    <small style="color: #999; font-size: 11px; margin-top: 4px; display: block; opacity: 0.7;">
+                        可在输入框内使用 /model 命令切换至此模型
+                    </small>
+                </div>
             </form>
             <footer class="modal-footer">
                 <button class="btn btn-secondary" id="modal-cancel-btn" type="button">取消</button>
