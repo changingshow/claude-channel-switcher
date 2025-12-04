@@ -161,6 +161,63 @@ class TauriAPI {
     async windowIsMaximized() {
         return await this.safeInvoke('window_is_maximized');
     }
+
+    // ==================== Droid 渠道管理 API ====================
+
+    /**
+     * 获取所有 Droid 渠道
+     * @param {string} configPath - 配置文件路径
+     * @returns {Promise<ApiResponse>} Droid 渠道列表
+     */
+    async getDroidChannels(configPath) {
+        return await this.safeInvoke('get_droid_channels', { configPath });
+    }
+
+    /**
+     * 获取当前 FACTORY_API_KEY 环境变量
+     * @returns {Promise<ApiResponse>} 当前环境变量值
+     */
+    async getCurrentFactoryApiKey() {
+        return await this.safeInvoke('get_current_factory_api_key');
+    }
+
+    /**
+     * 切换 Droid 渠道（设置环境变量）
+     * @param {string} apiKey - API Key
+     * @returns {Promise<ApiResponse>} 切换结果
+     */
+    async switchDroidChannel(apiKey) {
+        return await this.safeInvoke('switch_droid_channel', { apiKey });
+    }
+
+    /**
+     * 保存 Droid 渠道
+     * @param {object} params - {configPath, name, apiKey, oldName}
+     * @returns {Promise<ApiResponse>} 保存结果
+     */
+    async saveDroidChannel(params) {
+        return await this.safeInvoke('save_droid_channel', params);
+    }
+
+    /**
+     * 删除 Droid 渠道
+     * @param {string} configPath - 配置文件路径
+     * @param {string} name - 渠道名称
+     * @returns {Promise<ApiResponse>} 删除结果
+     */
+    async deleteDroidChannel(configPath, name) {
+        return await this.safeInvoke('delete_droid_channel', { configPath, name });
+    }
+
+    /**
+     * 启动 Droid
+     * @param {string} terminal - 终端类型
+     * @param {string} terminalDir - 终端工作目录
+     * @returns {Promise<ApiResponse>} 启动结果
+     */
+    async launchDroid(terminal, terminalDir) {
+        return await this.safeInvoke('launch_droid', { terminal, terminalDir });
+    }
 }
 
 // 创建全局实例

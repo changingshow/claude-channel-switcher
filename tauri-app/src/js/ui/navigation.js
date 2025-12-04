@@ -29,6 +29,11 @@ class NavigationManager {
         if (targetPage) {
             targetPage.classList.add('active');
         }
+        
+        // 切换到 droid 页面时刷新渠道列表
+        if (pageName === 'droid' && typeof droid !== 'undefined') {
+            droid.loadChannels();
+        }
     }
 
     /**
@@ -56,7 +61,12 @@ class NavigationManager {
             if (textSpan) {
                 textSpan.textContent = i18n.t(`nav.${page}`);
             }
-            const ariaKey = page === 'channels' ? 'channelManagement' : 'settingsPage';
+            let ariaKey = 'settingsPage';
+            if (page === 'channels') {
+                ariaKey = 'channelManagement';
+            } else if (page === 'droid') {
+                ariaKey = 'droidPage';
+            }
             item.setAttribute('aria-label', i18n.t(`aria.${ariaKey}`));
         });
     }

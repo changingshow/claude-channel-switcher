@@ -209,7 +209,14 @@ class ChannelManager {
      * @param {string} name - 渠道名称
      */
     async deleteChannel(name) {
-        if (!confirm(i18n.t('messages.confirmDelete', { name }))) {
+        const confirmed = await confirmDialog.show({
+            title: i18n.t('confirm.deleteTitle'),
+            message: i18n.t('messages.confirmDelete', { name }),
+            confirmText: i18n.t('confirm.delete'),
+            cancelText: i18n.t('confirm.cancel')
+        });
+        
+        if (!confirmed) {
             return;
         }
 

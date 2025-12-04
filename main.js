@@ -240,3 +240,202 @@ ipcMain.handle('set-titlebar-theme', async (event, theme) => {
     return { success: false, error: error.message };
   }
 });
+
+// ==================== Droid 渠道管理 ====================
+
+ipcMain.handle('get-current-factory-api-key', async () => {
+  try {
+    // 优先从当前进程环境变量获取
+    let key = process.env.FACTORY_API_KEY || '';
+    
+    // 如果为空，尝试从注册表读取
+    if (!key && process.platform === 'win32') {
+      try {
+        const { execSync } = require('child_process');
+        const result = execSync(
+          `powershell -Command "[Environment]::GetEnvironmentVariable('FACTORY_API_KEY', 'User')"`,
+          { encoding: 'utf-8', windowsHide: true }
+        ).trim();
+        if (result) {
+          key = result;
+          process.env.FACTORY_API_KEY = key;
+        }
+      } catch (e) {
+        // 忽略错误
+      }
+    }
+    
+    return { success: true, data: key };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-droid-channels', async (event, configPath) => {
+  try {
+    const keyFilePath = path.join(configPath, 'key.txt');
+    
+    try {
+      await fs.access(keyFilePath);
+    } catch {
+      return { success: true, data: [] };
+    }
+    
+    const content = await fs.readFile(keyFilePath, 'utf-8');
+    const channels = content
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        const lineClean = line.trim().replace(/\[active\]$/, '').trim();
+        const spaceIndex = lineClean.indexOf(' ');
+        if (spaceIndex > 0) {
+          return {
+            name: lineClean.substring(0, spaceIndex).trim(),
+            api_key: lineClean.substring(spaceIndex + 1).trim()
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    
+    return { success: true, data: channels };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('switch-droid-channel', async (event, apiKey) => {
+  try {
+    // 设置当前进程环境变量
+    process.env.FACTORY_API_KEY = apiKey;
+    
+    // 设置用户级别环境变量（写入注册表）
+    if (process.platform === 'win32') {
+      const { execSync } = require('child_process');
+      const escapedKey = apiKey.replace(/'/g, "''");
+      execSync(
+        `powershell -Command "[Environment]::SetEnvironmentVariable('FACTORY_API_KEY', '${escapedKey}', 'User')"`,
+        { windowsHide: true }
+      );
+    }
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-droid-channel', async (event, configPath, name, apiKey, oldName) => {
+  try {
+    const keyFilePath = path.join(configPath, 'key.txt');
+    let channels = [];
+    
+    try {
+      const content = await fs.readFile(keyFilePath, 'utf-8');
+      channels = content
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+          const lineClean = line.trim().replace(/\[active\]$/, '').trim();
+          const spaceIndex = lineClean.indexOf(' ');
+          if (spaceIndex > 0) {
+            return {
+              name: lineClean.substring(0, spaceIndex).trim(),
+              api_key: lineClean.substring(spaceIndex + 1).trim()
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    } catch {
+      // 文件不存在
+    }
+    
+    if (oldName) {
+      // 编辑模式：在原位置更新
+      const pos = channels.findIndex(c => c.name === oldName);
+      if (pos >= 0) {
+        if (oldName !== name && channels.some(c => c.name === name)) {
+          return { success: false, error: '渠道名称已存在' };
+        }
+        channels[pos] = { name, api_key: apiKey };
+      } else {
+        return { success: false, error: '渠道不存在' };
+      }
+    } else {
+      // 新增模式
+      if (channels.some(c => c.name === name)) {
+        return { success: false, error: '渠道名称已存在' };
+      }
+      channels.unshift({ name, api_key: apiKey });
+    }
+    
+    const newContent = channels.map(c => `${c.name} ${c.api_key}`).join('\n');
+    await fs.writeFile(keyFilePath, newContent, 'utf-8');
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-droid-channel', async (event, configPath, name) => {
+  try {
+    const keyFilePath = path.join(configPath, 'key.txt');
+    const content = await fs.readFile(keyFilePath, 'utf-8');
+    
+    const newLines = content
+      .split('\n')
+      .filter(line => {
+        const lineClean = line.trim().replace(/\[active\]$/, '').trim();
+        const spaceIndex = lineClean.indexOf(' ');
+        if (spaceIndex > 0) {
+          return lineClean.substring(0, spaceIndex).trim() !== name;
+        }
+        return true;
+      });
+    
+    await fs.writeFile(keyFilePath, newLines.join('\n'), 'utf-8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('launch-droid', async (event, terminal, terminalDir) => {
+  try {
+    if (terminal === 'wt') {
+      const isInstalled = await checkWindowsTerminalInstalled();
+      if (!isInstalled) {
+        return {
+          success: false,
+          error: 'Windows Terminal 未安装。请从 Microsoft Store 安装 Windows Terminal，或选择其他终端。'
+        };
+      }
+    }
+
+    let args;
+    const escapedDir = terminalDir.replace(/'/g, "''");
+
+    if (terminal === 'wt') {
+      args = ['-d', terminalDir, 'pwsh', '-NoExit', '-Command', 'droid'];
+    } else if (terminal === 'powershell' || terminal === 'pwsh') {
+      args = ['-NoExit', '-Command', `Set-Location '${escapedDir}'; droid`];
+    } else if (terminal === 'cmd') {
+      args = ['/K', 'droid'];
+    } else {
+      args = ['-NoExit', '-Command', `Set-Location '${escapedDir}'; droid`];
+    }
+
+    spawn(terminal, args, {
+      detached: true,
+      stdio: 'ignore',
+      shell: true,
+      cwd: terminalDir
+    });
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});

@@ -335,6 +335,315 @@ fn read_channels(config_path: &str) -> Result<HashMap<String, ChannelConfig>, Bo
     Ok(channels)
 }
 
+// ==================== Droid 渠道管理 ====================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct DroidChannel {
+    name: String,
+    api_key: String,
+}
+
+#[tauri::command]
+fn get_current_factory_api_key() -> ApiResponse<String> {
+    // 优先从当前进程的环境变量获取
+    if let Ok(key) = std::env::var("FACTORY_API_KEY") {
+        if !key.is_empty() {
+            return ApiResponse {
+                success: true,
+                error: None,
+                channels: None,
+                config: None,
+                data: Some(key),
+            };
+        }
+    }
+    
+    // 如果进程环境变量为空，尝试从注册表读取用户环境变量
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        
+        if let Ok(output) = Command::new("powershell")
+            .args(&["-Command", "[Environment]::GetEnvironmentVariable('FACTORY_API_KEY', 'User')"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            if output.status.success() {
+                let key = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !key.is_empty() {
+                    // 同步到当前进程的环境变量
+                    std::env::set_var("FACTORY_API_KEY", &key);
+                    return ApiResponse {
+                        success: true,
+                        error: None,
+                        channels: None,
+                        config: None,
+                        data: Some(key),
+                    };
+                }
+            }
+        }
+    }
+    
+    ApiResponse {
+        success: true,
+        error: None,
+        channels: None,
+        config: None,
+        data: Some(String::new()),
+    }
+}
+
+#[tauri::command]
+async fn get_droid_channels(config_path: String) -> ApiResponse<Vec<DroidChannel>> {
+    let key_file_path = Path::new(&config_path).join("key.txt");
+    
+    if !key_file_path.exists() {
+        return ApiResponse {
+            success: true,
+            error: None,
+            channels: None,
+            config: None,
+            data: Some(vec![]),
+        };
+    }
+    
+    match fs::read_to_string(&key_file_path) {
+        Ok(content) => {
+            let channels: Vec<DroidChannel> = content
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .filter_map(|line| {
+                    // 移除可能存在的 [active] 标记
+                    let line_clean = line.trim().trim_end_matches("[active]").trim();
+                    let parts: Vec<&str> = line_clean.splitn(2, ' ').collect();
+                    if parts.len() == 2 {
+                        Some(DroidChannel {
+                            name: parts[0].trim().to_string(),
+                            api_key: parts[1].trim().to_string(),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            ApiResponse {
+                success: true,
+                error: None,
+                channels: None,
+                config: None,
+                data: Some(channels),
+            }
+        },
+        Err(e) => ApiResponse {
+            success: false,
+            error: Some(e.to_string()),
+            channels: None,
+            config: None,
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+async fn switch_droid_channel(api_key: String) -> ApiResponse<()> {
+    // 设置当前进程的环境变量（子进程会继承）
+    std::env::set_var("FACTORY_API_KEY", &api_key);
+
+    // 设置用户级别环境变量（写入注册表，新终端可用）
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        
+        let ps_command = format!(
+            "[Environment]::SetEnvironmentVariable('FACTORY_API_KEY', '{}', 'User')",
+            api_key.replace("'", "''")
+        );
+        
+        if let Err(e) = Command::new("powershell")
+            .args(&["-Command", &ps_command])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            return ApiResponse::error(format!("设置环境变量失败: {}", e));
+        }
+    }
+
+    ApiResponse::success()
+}
+
+#[tauri::command]
+async fn save_droid_channel(
+    config_path: String,
+    name: String,
+    api_key: String,
+    old_name: String,
+) -> ApiResponse<()> {
+    let key_file_path = Path::new(&config_path).join("key.txt");
+    
+    let mut channels: Vec<DroidChannel> = if key_file_path.exists() {
+        match fs::read_to_string(&key_file_path) {
+            Ok(content) => content
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .filter_map(|line| {
+                    let line_clean = line.trim().trim_end_matches("[active]").trim();
+                    let parts: Vec<&str> = line_clean.splitn(2, ' ').collect();
+                    if parts.len() == 2 {
+                        Some(DroidChannel {
+                            name: parts[0].trim().to_string(),
+                            api_key: parts[1].trim().to_string(),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            Err(_) => vec![],
+        }
+    } else {
+        vec![]
+    };
+    
+    if !old_name.is_empty() {
+        // 编辑模式：在原位置更新
+        if let Some(pos) = channels.iter().position(|c| c.name == old_name) {
+            // 检查新名称是否与其他渠道重复
+            if old_name != name && channels.iter().any(|c| c.name == name) {
+                return ApiResponse::error("渠道名称已存在".to_string());
+            }
+            channels[pos] = DroidChannel { name, api_key };
+        } else {
+            return ApiResponse::error("渠道不存在".to_string());
+        }
+    } else {
+        // 新增模式：检查名称是否已存在
+        if channels.iter().any(|c| c.name == name) {
+            return ApiResponse::error("渠道名称已存在".to_string());
+        }
+        // 在顶部插入新渠道
+        channels.insert(0, DroidChannel { name, api_key });
+    }
+    
+    // 写回文件
+    let content: String = channels
+        .iter()
+        .map(|c| format!("{} {}", c.name, c.api_key))
+        .collect::<Vec<_>>()
+        .join("\n");
+    
+    match fs::write(&key_file_path, content) {
+        Ok(_) => ApiResponse::success(),
+        Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn delete_droid_channel(config_path: String, name: String) -> ApiResponse<()> {
+    let key_file_path = Path::new(&config_path).join("key.txt");
+    
+    if !key_file_path.exists() {
+        return ApiResponse::error("配置文件不存在".to_string());
+    }
+    
+    match fs::read_to_string(&key_file_path) {
+        Ok(content) => {
+            let channels: Vec<String> = content
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .filter(|line| {
+                    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+                    parts.len() != 2 || parts[0].trim() != name
+                })
+                .map(|s| s.to_string())
+                .collect();
+            
+            let new_content = channels.join("\n");
+            
+            match fs::write(&key_file_path, new_content) {
+                Ok(_) => ApiResponse::success(),
+                Err(e) => ApiResponse::error(e.to_string()),
+            }
+        },
+        Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn launch_droid(terminal: String, terminal_dir: String) -> ApiResponse<()> {
+    use std::process::Command;
+
+    #[cfg(target_os = "windows")]
+    use std::os::windows::process::CommandExt;
+
+    if terminal == "wt" {
+        if !check_windows_terminal_installed() {
+            return ApiResponse::error(
+                "Windows Terminal 未安装。请从 Microsoft Store 安装 Windows Terminal，或选择其他终端。".to_string()
+            );
+        }
+    }
+
+    let result = if cfg!(target_os = "windows") {
+        #[cfg(target_os = "windows")]
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        let escaped_dir = terminal_dir.replace("'", "''");
+
+        match terminal.as_str() {
+            "wt" => {
+                Command::new("wt")
+                    .arg("-d")
+                    .arg(&terminal_dir)
+                    .arg("pwsh")
+                    .arg("-NoExit")
+                    .arg("-Command")
+                    .arg("droid")
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .spawn()
+            },
+            "powershell" | "pwsh" => {
+                Command::new(&terminal)
+                    .current_dir(&terminal_dir)
+                    .arg("-NoExit")
+                    .arg("-Command")
+                    .arg(format!("Set-Location '{}'; droid", escaped_dir))
+                    .spawn()
+            },
+            "cmd" => {
+                Command::new("cmd")
+                    .current_dir(&terminal_dir)
+                    .arg("/k")
+                    .arg("droid")
+                    .spawn()
+            },
+            _ => {
+                Command::new(&terminal)
+                    .current_dir(&terminal_dir)
+                    .arg("-NoExit")
+                    .arg("-Command")
+                    .arg(format!("Set-Location '{}'; droid", escaped_dir))
+                    .spawn()
+            }
+        }
+    } else {
+        Command::new(&terminal)
+            .arg("-c")
+            .arg(&format!("cd '{}' && droid", terminal_dir))
+            .spawn()
+    };
+
+    match result {
+        Ok(_) => ApiResponse::success(),
+        Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -352,7 +661,14 @@ fn main() {
             window_maximize,
             window_unmaximize,
             window_close,
-            window_is_maximized
+            window_is_maximized,
+            // Droid 渠道管理
+            get_droid_channels,
+            get_current_factory_api_key,
+            switch_droid_channel,
+            save_droid_channel,
+            delete_droid_channel,
+            launch_droid
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

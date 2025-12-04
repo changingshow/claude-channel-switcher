@@ -15,7 +15,11 @@ const state = {
     language: localStorage.getItem('language') || 'zh-CN',
     channels: {},
     activeChannelName: null,
-    editingChannel: null
+    editingChannel: null,
+    // Droid 相关状态
+    droidChannels: [],
+    currentDroidApiKey: '',
+    editingDroidChannel: null
 };
 
 const elements = {};
@@ -31,8 +35,11 @@ function initializeApp() {
     updateUILanguage();
     setupNavigation();
     setupModal();
+    setupDroidModal();
+    setupConfirmDialog();
     setupSettings();
     loadChannels();
+    loadDroidChannels();
 }
 
 function cacheElements() {
@@ -45,6 +52,19 @@ function cacheElements() {
     elements.channelsList = document.getElementById('channels-list');
     elements.channelCount = document.querySelector('.channel-count');
     elements.toast = document.getElementById('toast');
+    // Droid 相关元素
+    elements.droidModal = document.getElementById('droid-modal');
+    elements.droidModalTitle = document.getElementById('droid-modal-title');
+    elements.droidNameInput = document.getElementById('droid-name-input');
+    elements.droidApiKeyInput = document.getElementById('droid-apikey-input');
+    elements.droidList = document.getElementById('droid-list');
+    elements.droidCount = document.querySelector('.droid-channel-count');
+    // 确认对话框
+    elements.confirmDialog = document.getElementById('confirm-dialog');
+    elements.confirmTitle = document.getElementById('confirm-dialog-title');
+    elements.confirmMessage = document.getElementById('confirm-dialog-message');
+    elements.confirmCancelBtn = document.getElementById('confirm-dialog-cancel');
+    elements.confirmConfirmBtn = document.getElementById('confirm-dialog-confirm');
 }
 
 function setupNavigation() {
@@ -64,6 +84,11 @@ function switchPage(pageName) {
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => page.classList.remove('active'));
     document.getElementById(`${pageName}-page`).classList.add('active');
+    
+    // 切换到 droid 页面时刷新渠道列表
+    if (pageName === 'droid') {
+        loadDroidChannels();
+    }
 }
 
 function setupModal() {
@@ -413,7 +438,14 @@ async function switchChannel(name) {
 }
 
 async function deleteChannel(name) {
-    if (!confirm(i18n.t('messages.confirmDelete', { name }))) {
+    const confirmed = await showConfirmDialog({
+        title: i18n.t('confirm.deleteTitle'),
+        message: i18n.t('messages.confirmDelete', { name }),
+        confirmText: i18n.t('confirm.delete'),
+        cancelText: i18n.t('confirm.cancel')
+    });
+    
+    if (!confirmed) {
         return;
     }
 
@@ -434,6 +466,285 @@ async function launchClaude(name) {
         showToast(i18n.t('messages.channelLaunched', { name, terminal: state.terminal }), 'success');
     } else {
         showToast(i18n.t('messages.errorLaunch', { error: result.error }), 'error');
+    }
+}
+
+// ==================== Droid 渠道管理 ====================
+
+function setupDroidModal() {
+    const addBtn = document.getElementById('add-droid-btn');
+    const refreshBtn = document.getElementById('refresh-droid-btn');
+    const closeBtn = document.getElementById('droid-modal-close-btn');
+    const cancelBtn = document.getElementById('droid-modal-cancel-btn');
+    const saveBtn = document.getElementById('droid-modal-save-btn');
+
+    addBtn?.addEventListener('click', openNewDroidModal);
+    refreshBtn?.addEventListener('click', handleRefreshDroidChannels);
+    closeBtn?.addEventListener('click', closeDroidModal);
+    cancelBtn?.addEventListener('click', closeDroidModal);
+    saveBtn?.addEventListener('click', handleSaveDroidChannel);
+}
+
+function openNewDroidModal() {
+    state.editingDroidChannel = null;
+    elements.droidModalTitle.textContent = i18n.t('droid.modal.titleNew');
+    elements.droidNameInput.value = '';
+    elements.droidApiKeyInput.value = '';
+    elements.droidModal.classList.add('active');
+}
+
+function openEditDroidModal(channel) {
+    state.editingDroidChannel = channel.name;
+    elements.droidModalTitle.textContent = i18n.t('droid.modal.titleEdit');
+    elements.droidNameInput.value = channel.name;
+    elements.droidApiKeyInput.value = channel.api_key;
+    elements.droidModal.classList.add('active');
+}
+
+function closeDroidModal() {
+    elements.droidModal.classList.remove('active');
+    state.editingDroidChannel = null;
+}
+
+async function handleRefreshDroidChannels() {
+    const refreshBtn = document.getElementById('refresh-droid-btn');
+
+    setElementState(refreshBtn, true);
+    setElementState(elements.droidList, true);
+
+    await loadDroidChannels();
+
+    setTimeout(() => {
+        setElementState(elements.droidList, false);
+        setElementState(refreshBtn, false);
+        showToast(i18n.t('droid.messages.channelsRefreshed'), 'success');
+    }, REFRESH_ANIMATION_DURATION);
+}
+
+async function loadDroidChannels() {
+    // 获取当前环境变量
+    const envResult = await ipcRenderer.invoke('get-current-factory-api-key');
+    state.currentDroidApiKey = envResult.success ? (envResult.data || '') : '';
+
+    const result = await ipcRenderer.invoke('get-droid-channels', state.configPath);
+
+    if (!result.success) {
+        console.error('加载 Droid 渠道失败:', result.error);
+        state.droidChannels = [];
+        renderDroidChannels();
+        return;
+    }
+
+    state.droidChannels = result.data || [];
+    renderDroidChannels();
+}
+
+function renderDroidChannels() {
+    if (!elements.droidList || !elements.droidCount) return;
+
+    const count = state.droidChannels.length;
+    elements.droidCount.textContent = `${count} ${i18n.t('droid.count')}`;
+
+    if (count === 0) {
+        elements.droidList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">${i18n.t('droid.empty.icon')}</div>
+                <div class="empty-text">${i18n.t('droid.empty.text')}</div>
+                <div class="empty-hint">${i18n.t('droid.empty.hint')}</div>
+            </div>
+        `;
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    state.droidChannels.forEach((channel) => {
+        const isActive = state.currentDroidApiKey && channel.api_key === state.currentDroidApiKey;
+        const card = createDroidChannelCard(channel, isActive);
+        fragment.appendChild(card);
+    });
+
+    elements.droidList.innerHTML = '';
+    elements.droidList.appendChild(fragment);
+}
+
+function createDroidChannelCard(channel, isActive) {
+    const card = document.createElement('div');
+    card.className = `channel-card${isActive ? ' active' : ''}`;
+
+    const statusText = isActive ? i18n.t('droid.status.active') : i18n.t('droid.status.inactive');
+    const statusIndicator = `<span class="status-indicator ${isActive ? 'active' : ''}"></span> ${statusText}`;
+
+    card.innerHTML = `
+        <div class="channel-header">
+            <div class="channel-icon">🤖</div>
+            <div class="channel-info">
+                <div class="channel-name">${escapeHtml(channel.name)}</div>
+                <div class="channel-status">${statusIndicator}</div>
+            </div>
+        </div>
+        <div class="channel-actions">
+            ${isActive ? `<button class="btn btn-success btn-small launch-btn">🚀 ${i18n.t('droid.actions.launch')}</button>` : ''}
+            <button class="btn btn-primary btn-small switch-btn" ${isActive ? 'disabled' : ''}>⚡ ${i18n.t('droid.actions.switch')}</button>
+            <button class="btn btn-secondary btn-small edit-btn">✏️ ${i18n.t('droid.actions.edit')}</button>
+            <button class="btn btn-danger btn-small delete-btn">🗑️ ${i18n.t('droid.actions.delete')}</button>
+        </div>
+    `;
+
+    attachDroidCardEventListeners(card, channel, isActive);
+    return card;
+}
+
+function attachDroidCardEventListeners(card, channel, isActive) {
+    if (isActive) {
+        const launchBtn = card.querySelector('.launch-btn');
+        launchBtn?.addEventListener('click', () => launchDroid(channel));
+    }
+
+    const editBtn = card.querySelector('.edit-btn');
+    editBtn?.addEventListener('click', () => openEditDroidModal(channel));
+
+    const switchBtn = card.querySelector('.switch-btn');
+    if (!isActive) {
+        switchBtn?.addEventListener('click', () => switchDroidChannel(channel));
+    }
+
+    const deleteBtn = card.querySelector('.delete-btn');
+    deleteBtn?.addEventListener('click', () => deleteDroidChannel(channel));
+}
+
+async function handleSaveDroidChannel() {
+    const name = elements.droidNameInput.value.trim();
+    const apiKey = elements.droidApiKeyInput.value.trim();
+
+    if (!name) {
+        showToast(i18n.t('droid.messages.errorNameRequired'), 'error');
+        return;
+    }
+
+    if (!apiKey) {
+        showToast(i18n.t('droid.messages.errorApiKeyRequired'), 'error');
+        return;
+    }
+
+    // 检查名称重复
+    const isDuplicate = state.droidChannels.some(
+        c => c.name === name && state.editingDroidChannel !== name
+    );
+    if (isDuplicate) {
+        showToast(i18n.t('droid.messages.errorNameDuplicate'), 'error');
+        return;
+    }
+
+    const result = await ipcRenderer.invoke(
+        'save-droid-channel',
+        state.configPath,
+        name,
+        apiKey,
+        state.editingDroidChannel || ''
+    );
+
+    if (result.success) {
+        showToast(state.editingDroidChannel 
+            ? i18n.t('droid.messages.channelUpdated') 
+            : i18n.t('droid.messages.channelCreated'), 'success');
+        closeDroidModal();
+        await loadDroidChannels();
+    } else {
+        showToast(i18n.t('messages.errorSave', { error: result.error }), 'error');
+    }
+}
+
+async function switchDroidChannel(channel) {
+    const result = await ipcRenderer.invoke('switch-droid-channel', channel.api_key);
+
+    if (result.success) {
+        state.currentDroidApiKey = channel.api_key;
+        showToast(i18n.t('droid.messages.channelSwitched', { name: channel.name }), 'success');
+        renderDroidChannels();
+    } else {
+        showToast(i18n.t('messages.errorSwitch', { error: result.error }), 'error');
+    }
+}
+
+async function deleteDroidChannel(channel) {
+    const confirmed = await showConfirmDialog({
+        title: i18n.t('confirm.deleteTitle'),
+        message: i18n.t('droid.messages.confirmDelete', { name: channel.name }),
+        confirmText: i18n.t('confirm.delete'),
+        cancelText: i18n.t('confirm.cancel')
+    });
+    
+    if (!confirmed) {
+        return;
+    }
+
+    const result = await ipcRenderer.invoke('delete-droid-channel', state.configPath, channel.name);
+
+    if (result.success) {
+        showToast(i18n.t('droid.messages.channelDeleted', { name: channel.name }), 'success');
+        await loadDroidChannels();
+    } else {
+        showToast(i18n.t('messages.errorDelete', { error: result.error }), 'error');
+    }
+}
+
+async function launchDroid(channel) {
+    const result = await ipcRenderer.invoke('launch-droid', state.terminal, state.terminalDir);
+
+    if (result.success) {
+        showToast(i18n.t('droid.messages.channelLaunched', { name: channel.name, terminal: state.terminal }), 'success');
+    } else {
+        showToast(i18n.t('messages.errorLaunch', { error: result.error }), 'error');
+    }
+}
+
+// ==================== 确认对话框 ====================
+
+let confirmResolve = null;
+
+function setupConfirmDialog() {
+    elements.confirmCancelBtn?.addEventListener('click', () => closeConfirmDialog(false));
+    elements.confirmConfirmBtn?.addEventListener('click', () => closeConfirmDialog(true));
+    
+    elements.confirmDialog?.addEventListener('click', (e) => {
+        if (e.target === elements.confirmDialog) {
+            closeConfirmDialog(false);
+        }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && elements.confirmDialog?.classList.contains('active')) {
+            closeConfirmDialog(false);
+        }
+    });
+}
+
+function showConfirmDialog(options = {}) {
+    const {
+        title = i18n.t('confirm.deleteTitle'),
+        message = i18n.t('confirm.deleteMessage'),
+        confirmText = i18n.t('confirm.delete'),
+        cancelText = i18n.t('confirm.cancel')
+    } = options;
+
+    elements.confirmTitle.textContent = title;
+    elements.confirmMessage.textContent = message;
+    elements.confirmConfirmBtn.textContent = confirmText;
+    elements.confirmCancelBtn.textContent = cancelText;
+
+    elements.confirmDialog.classList.add('active');
+    elements.confirmConfirmBtn.focus();
+
+    return new Promise((resolve) => {
+        confirmResolve = resolve;
+    });
+}
+
+function closeConfirmDialog(result) {
+    elements.confirmDialog.classList.remove('active');
+    if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
     }
 }
 
@@ -494,10 +805,13 @@ function updateUILanguage() {
 
     updateNavigationLanguage();
     updateChannelsPageLanguage();
+    updateDroidPageLanguage();
     updateSettingsPageLanguage();
     updateModalLanguage();
+    updateDroidModalLanguage();
 
     renderChannels();
+    renderDroidChannels();
 }
 
 function updateNavigationLanguage() {
@@ -611,7 +925,7 @@ function updateModalLanguage() {
     elements.channelTokenInput.placeholder = i18n.t('modal.fields.tokenPlaceholder');
     elements.channelUrlInput.placeholder = i18n.t('modal.fields.urlPlaceholder');
 
-    const labels = document.querySelectorAll('.modal-body .form-label');
+    const labels = document.querySelectorAll('#channel-modal .modal-body .form-label');
     if (labels[0]) labels[0].textContent = i18n.t('modal.fields.name');
     if (labels[1]) labels[1].textContent = i18n.t('modal.fields.token');
     if (labels[2]) labels[2].textContent = i18n.t('modal.fields.url');
@@ -629,5 +943,43 @@ function updateModalLanguage() {
     const saveBtn = document.getElementById('modal-save-btn');
     if (saveBtn) {
         saveBtn.textContent = i18n.t('modal.buttons.save');
+    }
+}
+
+function updateDroidPageLanguage() {
+    const pageTitle = document.querySelector('#droid-page .page-title');
+    if (pageTitle) {
+        pageTitle.textContent = i18n.t('droid.title');
+    }
+
+    const refreshBtn = document.getElementById('refresh-droid-btn');
+    if (refreshBtn) {
+        refreshBtn.querySelector('span:last-child').textContent = i18n.t('droid.refresh');
+    }
+
+    const addBtn = document.getElementById('add-droid-btn');
+    if (addBtn) {
+        addBtn.querySelector('span:last-child').textContent = i18n.t('droid.add');
+    }
+}
+
+function updateDroidModalLanguage() {
+    if (!elements.droidNameInput || !elements.droidApiKeyInput) return;
+
+    elements.droidNameInput.placeholder = i18n.t('droid.modal.fields.namePlaceholder');
+    elements.droidApiKeyInput.placeholder = i18n.t('droid.modal.fields.apiKeyPlaceholder');
+
+    const labels = document.querySelectorAll('#droid-modal .modal-body .form-label');
+    if (labels[0]) labels[0].textContent = i18n.t('droid.modal.fields.name');
+    if (labels[1]) labels[1].textContent = i18n.t('droid.modal.fields.apiKey');
+
+    const cancelBtn = document.getElementById('droid-modal-cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.textContent = i18n.t('droid.modal.buttons.cancel');
+    }
+
+    const saveBtn = document.getElementById('droid-modal-save-btn');
+    if (saveBtn) {
+        saveBtn.textContent = i18n.t('droid.modal.buttons.save');
     }
 }

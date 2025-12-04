@@ -6,6 +6,7 @@ const translations = {
         },
         nav: {
             channels: '渠道管理',
+            droid: 'Droid 渠道',
             settings: '设置'
         },
         channels: {
@@ -124,10 +125,64 @@ const translations = {
             closeDialog: '关闭对话框',
             channelManagement: '渠道管理',
             settingsPage: '设置',
+            droidPage: 'Droid 渠道管理',
             mainNav: '主导航',
             themeSelection: '主题选择',
             languageSelection: '语言选择',
             terminalPresets: '终端预设'
+        },
+        droid: {
+            title: 'Droid 渠道管理',
+            count: '个渠道',
+            refresh: '刷新',
+            add: '新建渠道',
+            empty: {
+                icon: '🤖',
+                text: '暂无 Droid 渠道配置',
+                hint: '点击右上角「➕ 新建渠道」开始添加'
+            },
+            status: {
+                active: '当前激活',
+                inactive: '待激活'
+            },
+            actions: {
+                launch: '启动',
+                switch: '切换',
+                edit: '编辑',
+                delete: '删除'
+            },
+            modal: {
+                titleNew: '新建 Droid 渠道',
+                titleEdit: '编辑 Droid 渠道',
+                fields: {
+                    name: '渠道名称',
+                    namePlaceholder: '例如：渠道1、主渠道',
+                    apiKey: 'API Key',
+                    apiKeyPlaceholder: 'fx-xxxxx...'
+                },
+                buttons: {
+                    cancel: '取消',
+                    save: '保存'
+                }
+            },
+            messages: {
+                channelCreated: 'Droid 渠道已创建',
+                channelUpdated: 'Droid 渠道已更新',
+                channelDeleted: 'Droid 渠道 {name} 已删除',
+                channelSwitched: '已切换到 Droid 渠道：{name}',
+                channelLaunched: '已在新窗口中启动 Droid\n当前渠道：{name}\n终端：{terminal}',
+                channelsRefreshed: 'Droid 渠道列表已刷新',
+                errorNameRequired: '请输入渠道名称',
+                errorApiKeyRequired: '请输入 API Key',
+                errorNameDuplicate: '渠道名称已存在',
+                confirmDelete: '确定要删除 Droid 渠道「{name}」吗？'
+            }
+        },
+        confirm: {
+            deleteTitle: '确认删除',
+            deleteMessage: '此操作无法撤销，确定要删除吗？',
+            delete: '删除',
+            cancel: '取消'
         }
     },
     'en-US': {
@@ -137,6 +192,7 @@ const translations = {
         },
         nav: {
             channels: 'Channels',
+            droid: 'Droid',
             settings: 'Settings'
         },
         channels: {
@@ -255,10 +311,64 @@ const translations = {
             closeDialog: 'Close dialog',
             channelManagement: 'Channel management',
             settingsPage: 'Settings',
+            droidPage: 'Droid Channel Management',
             mainNav: 'Main navigation',
             themeSelection: 'Theme selection',
             languageSelection: 'Language selection',
             terminalPresets: 'Terminal presets'
+        },
+        droid: {
+            title: 'Droid Channel Management',
+            count: 'channels',
+            refresh: 'Refresh',
+            add: 'Add Channel',
+            empty: {
+                icon: '🤖',
+                text: 'No Droid channels configured',
+                hint: 'Click "➕ Add Channel" in the top right to get started'
+            },
+            status: {
+                active: 'Active',
+                inactive: 'Inactive'
+            },
+            actions: {
+                launch: 'Launch',
+                switch: 'Switch',
+                edit: 'Edit',
+                delete: 'Delete'
+            },
+            modal: {
+                titleNew: 'Add Droid Channel',
+                titleEdit: 'Edit Droid Channel',
+                fields: {
+                    name: 'Channel Name',
+                    namePlaceholder: 'e.g., Channel1, Main',
+                    apiKey: 'API Key',
+                    apiKeyPlaceholder: 'fx-xxxxx...'
+                },
+                buttons: {
+                    cancel: 'Cancel',
+                    save: 'Save'
+                }
+            },
+            messages: {
+                channelCreated: 'Droid channel created',
+                channelUpdated: 'Droid channel updated',
+                channelDeleted: 'Droid channel {name} deleted',
+                channelSwitched: 'Switched to Droid channel: {name}',
+                channelLaunched: 'Droid launched in new window\nChannel: {name}\nTerminal: {terminal}',
+                channelsRefreshed: 'Droid channels refreshed',
+                errorNameRequired: 'Please enter channel name',
+                errorApiKeyRequired: 'Please enter API Key',
+                errorNameDuplicate: 'Channel name already exists',
+                confirmDelete: 'Are you sure you want to delete Droid channel "{name}"?'
+            }
+        },
+        confirm: {
+            deleteTitle: 'Confirm Delete',
+            deleteMessage: 'This action cannot be undone. Are you sure?',
+            delete: 'Delete',
+            cancel: 'Cancel'
         }
     }
 };

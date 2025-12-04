@@ -45,13 +45,16 @@ async function initializeApp() {
     // 初始化各个模块
     navigation.init();
     titlebar.init();
+    confirmDialog.init();
     settings.init();
+    droid.init();
     
     // 更新 UI 语言
     updateUILanguage();
     
     // 加载渠道列表
     await channels.loadChannels();
+    await droid.loadChannels();
 }
 
 /**
@@ -104,8 +107,10 @@ function updateUILanguage() {
     titlebar.updateLanguage();
     navigation.updateLanguage();
     channels.updateLanguage();
+    droid.updateLanguage();
     settings.updateLanguage();
     modal.updateLanguage();
+    confirmDialog.updateLanguage();
 }
 
 // 将函数暴露到全局作用域，以便其他模块可以调用

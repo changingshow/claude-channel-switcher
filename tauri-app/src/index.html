@@ -39,6 +39,10 @@
                     <span class="nav-icon" aria-hidden="true">🏠</span>
                     <span class="nav-text">渠道管理</span>
                 </button>
+                <button class="nav-item" data-page="droid" aria-label="Droid 渠道">
+                    <span class="nav-icon" aria-hidden="true">🤖</span>
+                    <span class="nav-text">Droid 渠道</span>
+                </button>
                 <button class="nav-item" data-page="settings" aria-label="设置">
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
                     <span class="nav-text">设置</span>
@@ -68,6 +72,27 @@
                 </header>
 
                 <div class="channels-container" id="channels-list" role="list"></div>
+            </section>
+
+            <section id="droid-page" class="page">
+                <header class="page-header">
+                    <div class="header-left">
+                        <h2 class="page-title">Droid 渠道管理</h2>
+                        <span class="droid-channel-count" aria-live="polite">0 个渠道</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="refresh-droid-btn" aria-label="刷新渠道列表">
+                            <span aria-hidden="true">🔄</span>
+                            <span>刷新</span>
+                        </button>
+                        <button class="btn btn-primary" id="add-droid-btn" aria-label="新建渠道">
+                            <span aria-hidden="true">➕</span>
+                            <span>新建渠道</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="channels-container" id="droid-list" role="list"></div>
             </section>
 
             <section id="settings-page" class="page">
@@ -192,7 +217,45 @@
         </div>
     </div>
 
+    <!-- Droid 渠道模态框 -->
+    <div class="modal" id="droid-modal" role="dialog" aria-modal="true" aria-labelledby="droid-modal-title">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 class="modal-title" id="droid-modal-title">新建 Droid 渠道</h3>
+                <button class="modal-close" id="droid-modal-close-btn" aria-label="关闭对话框">✕</button>
+            </header>
+            <form class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="droid-name-input">渠道名称</label>
+                    <input type="text" id="droid-name-input" class="form-input" placeholder="例如：渠道1、主渠道" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="droid-apikey-input">API Key</label>
+                    <input type="text" id="droid-apikey-input" class="form-input" placeholder="fx-xxxxxx..." required autocomplete="off">
+                </div>
+            </form>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" id="droid-modal-cancel-btn" type="button">取消</button>
+                <button class="btn btn-primary" id="droid-modal-save-btn" type="button">保存</button>
+            </footer>
+        </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- 确认对话框 -->
+    <div class="confirm-dialog" id="confirm-dialog" role="alertdialog" aria-modal="true">
+        <div class="confirm-dialog-content">
+            <div class="confirm-dialog-body">
+                <h3 class="confirm-dialog-title" id="confirm-dialog-title">确认删除</h3>
+                <p class="confirm-dialog-message" id="confirm-dialog-message">确定要删除此项吗？</p>
+            </div>
+            <div class="confirm-dialog-footer">
+                <button class="confirm-dialog-btn confirm-dialog-btn-cancel" id="confirm-dialog-cancel">取消</button>
+                <button class="confirm-dialog-btn confirm-dialog-btn-confirm" id="confirm-dialog-confirm">删除</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 国际化模块 -->
     <script src="i18n.js"></script>
@@ -210,12 +273,14 @@
     <!-- UI 模块 -->
     <script src="js/ui/toast.js"></script>
     <script src="js/ui/modal.js"></script>
+    <script src="js/ui/confirm.js"></script>
     <script src="js/ui/navigation.js"></script>
     <script src="js/ui/titlebar.js"></script>
     
     <!-- 功能模块 -->
     <script src="js/features/theme.js"></script>
     <script src="js/features/channels.js"></script>
+    <script src="js/features/droid.js"></script>
     <script src="js/features/settings.js"></script>
     
     <!-- 主入口 -->
