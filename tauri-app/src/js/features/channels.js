@@ -130,10 +130,21 @@ class ChannelManager {
         const card = document.createElement('div');
         card.className = `channel-card${isActive ? ' active' : ''}`;
 
+        const config = state.channels[name];
+        const hasBalanceApi = config?.balanceApi?.url && config?.balanceApi?.field;
+
         const statusText = isActive ? i18n.t('channels.status.active') : i18n.t('channels.status.inactive');
         const statusIndicator = `<span class="status-indicator ${isActive ? 'active' : ''}"></span> ${statusText}`;
 
+        const balanceHtml = hasBalanceApi ? `
+            <div class="channel-balance" data-channel="${DOMUtils.escapeHtml(name)}" title="${i18n.t('channels.balance.clickToQuery')}">
+                <span class="balance-icon">💰</span>
+                <span class="balance-value hint">${i18n.t('channels.balance.clickToQuery')}</span>
+            </div>
+        ` : '';
+
         card.innerHTML = `
+            ${balanceHtml}
             <div class="channel-header">
                 <div class="channel-icon">📡</div>
                 <div class="channel-info">
@@ -144,7 +155,7 @@ class ChannelManager {
             <div class="channel-actions">
                 ${isActive ? `<button class="btn btn-success btn-small launch-btn">🚀 ${i18n.t('channels.actions.launch')}</button>` : ''}
                 <button class="btn btn-primary btn-small switch-btn" ${isActive ? 'disabled' : ''}>⚡ ${i18n.t('channels.actions.switch')}</button>
-                <button class="btn btn-secondary btn-small edit-btn">✏️ ${i18n.t('channels.actions.edit')}</button>
+                <button class="btn btn-edit btn-small edit-btn">✏️ ${i18n.t('channels.actions.edit')}</button>
                 <button class="btn btn-danger btn-small delete-btn">🗑️ ${i18n.t('channels.actions.delete')}</button>
             </div>
         `;
@@ -175,6 +186,12 @@ class ChannelManager {
 
         const deleteBtn = card.querySelector('.delete-btn');
         deleteBtn?.addEventListener('click', () => this.deleteChannel(name));
+
+        const balanceEl = card.querySelector('.channel-balance');
+        balanceEl?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.queryBalance(name, balanceEl);
+        });
     }
 
     /**
@@ -257,7 +274,7 @@ class ChannelManager {
      */
     async saveChannel() {
         const formData = modal.getFormData();
-        const { name, token, url, model } = formData;
+        const { name, token, url, model, balanceUrl, balanceMethod, balanceField } = formData;
 
         // 验证渠道名称
         const nameValidation = Validation.validateChannelName(name);
@@ -287,6 +304,12 @@ class ChannelManager {
             return;
         }
 
+        // 验证余额查询：如果填了 URL 则字段必填
+        if (balanceUrl && !balanceField) {
+            toast.show(i18n.t('messages.errorBalanceFieldRequired'));
+            return;
+        }
+
         try {
             const result = await api.saveChannel({
                 configPath: state.configPath,
@@ -294,7 +317,10 @@ class ChannelManager {
                 token: token,
                 url: url || '',
                 model: model || '',
-                oldName: state.editingChannel || ''
+                oldName: state.editingChannel || '',
+                balanceUrl: balanceUrl || '',
+                balanceMethod: balanceMethod || 'POST',
+                balanceField: balanceField || ''
             });
 
             if (result.success) {
@@ -355,6 +381,99 @@ class ChannelManager {
         }
 
         this.renderChannels();
+    }
+
+    /**
+     * 查询渠道余额
+     * @param {string} name - 渠道名称
+     * @param {HTMLElement} balanceEl - 余额显示元素
+     */
+    async queryBalance(name, balanceEl) {
+        const config = state.channels[name];
+        const balanceApi = config?.balanceApi;
+        if (!balanceApi?.url || !balanceApi?.field) return;
+
+        const balanceValue = balanceEl.querySelector('.balance-value');
+        const token = config.env?.ANTHROPIC_AUTH_TOKEN;
+
+        if (!token) {
+            balanceValue.textContent = i18n.t('channels.balance.noToken');
+            return;
+        }
+
+        balanceValue.textContent = i18n.t('channels.balance.loading');
+
+        try {
+            const result = await api.queryBalance(balanceApi.url, balanceApi.method || 'POST', token);
+            balanceValue.classList.remove('hint');
+
+            if (result.success && result.data) {
+                balanceValue.textContent = this.extractBalanceValue(result.data, balanceApi.field);
+            } else {
+                balanceValue.textContent = i18n.t('channels.balance.error');
+            }
+        } catch (error) {
+            balanceValue.textContent = i18n.t('channels.balance.error');
+            balanceValue.classList.remove('hint');
+        }
+    }
+
+    /**
+     * 从响应数据中提取余额值
+     * @param {string} data - 响应数据
+     * @param {string} field - 字段路径
+     * @returns {string} 余额值或错误提示
+     */
+    extractBalanceValue(data, field) {
+        const errorText = i18n.t('channels.balance.error');
+
+        let json;
+        try {
+            json = JSON.parse(data);
+        } catch {
+            const match = data.match(/\{[\s\S]*\}/);
+            if (!match) return errorText;
+            try {
+                json = JSON.parse(match[0]);
+            } catch {
+                return errorText;
+            }
+        }
+
+        const value = this.findField(json, field);
+        return value !== undefined ? String(value) : errorText;
+    }
+
+    /**
+     * 递归查找指定字段
+     * @param {any} obj - 对象
+     * @param {string} field - 字段路径
+     * @param {number} depth - 递归深度
+     * @returns {any} 找到的值
+     */
+    findField(obj, field, depth = 0) {
+        if (depth > 10 || !obj || typeof obj !== 'object') return undefined;
+
+        const keys = field.split('.');
+        let val = obj;
+        for (const k of keys) {
+            if (val && typeof val === 'object' && k in val) {
+                val = val[k];
+            } else {
+                val = undefined;
+                break;
+            }
+        }
+        if (val !== undefined) return val;
+
+        const entries = Array.isArray(obj) ? obj : Object.values(obj);
+        for (const item of entries) {
+            if (item && typeof item === 'object') {
+                const result = this.findField(item, field, depth + 1);
+                if (result !== undefined) return result;
+            }
+        }
+        return undefined;
     }
 }
 

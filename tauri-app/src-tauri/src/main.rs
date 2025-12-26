@@ -6,6 +6,16 @@ use std::fs;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct BalanceApi {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    field: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct ChannelConfig {
     env: HashMap<String, String>,
@@ -16,6 +26,8 @@ struct ChannelConfig {
     always_thinking_enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     mtime: Option<i64>,
+    #[serde(rename = "balanceApi", skip_serializing_if = "Option::is_none")]
+    balance_api: Option<BalanceApi>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -111,14 +123,27 @@ async fn save_channel(
     url: String,
     model: String,
     old_name: String,
+    balance_url: String,
+    balance_method: String,
+    balance_field: String,
 ) -> ApiResponse<()> {
     let mut env = HashMap::new();
     env.insert("ANTHROPIC_AUTH_TOKEN".to_string(), token);
     env.insert("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".to_string(), "1".to_string());
-    
+
     if !url.is_empty() {
         env.insert("ANTHROPIC_BASE_URL".to_string(), url);
     }
+
+    let balance_api = if !balance_url.is_empty() {
+        Some(BalanceApi {
+            url: Some(balance_url),
+            method: if balance_method.is_empty() { Some("POST".to_string()) } else { Some(balance_method) },
+            field: if balance_field.is_empty() { None } else { Some(balance_field) },
+        })
+    } else {
+        None
+    };
 
     let config = ChannelConfig {
         env,
@@ -129,6 +154,7 @@ async fn save_channel(
         model: if model.is_empty() { None } else { Some(model) },
         always_thinking_enabled: true,
         mtime: None,
+        balance_api,
     };
 
     if !old_name.is_empty() && old_name != channel_name {
@@ -662,6 +688,7 @@ fn main() {
             window_unmaximize,
             window_close,
             window_is_maximized,
+            query_balance,
             // Droid 渠道管理
             get_droid_channels,
             get_current_factory_api_key,
@@ -672,6 +699,43 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn query_balance(url: String, method: String, token: String) -> ApiResponse<String> {
+    let final_url = url.replace("{apikey}", &token);
+    let client = reqwest::Client::new();
+
+    let request = match method.to_uppercase().as_str() {
+        "GET" => client.get(&final_url),
+        _ => client.post(&final_url),
+    };
+
+    match request.send().await {
+        Ok(resp) => match resp.text().await {
+            Ok(text) => ApiResponse {
+                success: true,
+                error: None,
+                channels: None,
+                config: None,
+                data: Some(text),
+            },
+            Err(e) => ApiResponse {
+                success: false,
+                error: Some(format!("读取响应失败: {}", e)),
+                channels: None,
+                config: None,
+                data: None,
+            },
+        },
+        Err(e) => ApiResponse {
+            success: false,
+            error: Some(format!("请求失败: {}", e)),
+            channels: None,
+            config: None,
+            data: None,
+        },
+    }
 }
 
 #[tauri::command]

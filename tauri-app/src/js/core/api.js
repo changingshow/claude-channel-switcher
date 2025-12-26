@@ -68,11 +68,21 @@ class TauriAPI {
 
     /**
      * 保存渠道配置
-     * @param {object} params - 渠道参数 {configPath, channelName, token, url, oldName}
+     * @param {object} params - 渠道参数 {configPath, channelName, token, url, model, oldName, balanceUrl, balanceMethod, balanceField}
      * @returns {Promise<ApiResponse>} 保存结果
      */
     async saveChannel(params) {
-        return await this.safeInvoke('save_channel', params);
+        return await this.safeInvoke('save_channel', {
+            configPath: params.configPath,
+            channelName: params.channelName,
+            token: params.token,
+            url: params.url,
+            model: params.model,
+            oldName: params.oldName,
+            balanceUrl: params.balanceUrl || '',
+            balanceMethod: params.balanceMethod || 'POST',
+            balanceField: params.balanceField || ''
+        });
     }
 
     /**
@@ -217,6 +227,17 @@ class TauriAPI {
      */
     async launchDroid(terminal, terminalDir) {
         return await this.safeInvoke('launch_droid', { terminal, terminalDir });
+    }
+
+    /**
+     * 查询渠道余额
+     * @param {string} url - 查询地址（包含 {apikey} 占位符）
+     * @param {string} method - 请求方法 (GET/POST)
+     * @param {string} token - API Token
+     * @returns {Promise<ApiResponse>} 余额查询结果
+     */
+    async queryBalance(url, method, token) {
+        return await this.safeInvoke('query_balance', { url, method, token });
     }
 }
 

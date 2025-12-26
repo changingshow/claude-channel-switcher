@@ -143,7 +143,7 @@ class DroidManager {
             <div class="channel-actions">
                 ${isActive ? `<button class="btn btn-success btn-small launch-btn">🚀 ${i18n.t('droid.actions.launch')}</button>` : ''}
                 <button class="btn btn-primary btn-small switch-btn" ${isActive ? 'disabled' : ''}>⚡ ${i18n.t('droid.actions.switch')}</button>
-                <button class="btn btn-secondary btn-small edit-btn">✏️ ${i18n.t('droid.actions.edit')}</button>
+                <button class="btn btn-edit btn-small edit-btn">✏️ ${i18n.t('droid.actions.edit')}</button>
                 <button class="btn btn-danger btn-small delete-btn">🗑️ ${i18n.t('droid.actions.delete')}</button>
             </div>
         `;

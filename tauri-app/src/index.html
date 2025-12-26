@@ -49,7 +49,14 @@
                 </button>
             </nav>
 
-            <footer class="version">v3.0.0</footer>
+            <div class="sidebar-theme-switch">
+                <label class="theme-switch" id="theme-toggle-btn" aria-label="切换主题">
+                    <input type="checkbox" id="theme-checkbox">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <footer class="version" id="version-easter-egg">v3.0.0</footer>
         </aside>
 
         <main class="main-content" role="main">
@@ -209,6 +216,34 @@
                         可在输入框内使用 /model 命令切换至此模型
                     </small>
                 </div>
+                <div class="form-group">
+                    <label class="form-label" for="channel-balance-url-input">余额查询地址（可选）</label>
+                    <input type="text" id="channel-balance-url-input" class="form-input" placeholder="https://api.xxx.com/balance?key={apikey}">
+                    <small style="color: #999; font-size: 11px; margin-top: 4px; display: block; opacity: 0.7;">
+                        使用 {apikey} 作为 Token 占位符
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="channel-balance-method">查询方法</label>
+                    <div class="custom-select" id="channel-balance-method-select">
+                        <div class="custom-select-trigger">
+                            <span class="custom-select-value">POST</span>
+                            <span class="custom-select-arrow"></span>
+                        </div>
+                        <div class="custom-select-options">
+                            <div class="custom-select-option selected" data-value="POST">POST</div>
+                            <div class="custom-select-option" data-value="GET">GET</div>
+                        </div>
+                        <input type="hidden" id="channel-balance-method" value="POST">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="channel-balance-field-input" id="balance-field-label">余额字段（可选）</label>
+                    <input type="text" id="channel-balance-field-input" class="form-input" placeholder="例如：balance 或 data.balance">
+                    <small style="color: #999; font-size: 11px; margin-top: 4px; display: block; opacity: 0.7;">
+                        指定从响应 JSON 中提取的字段路径
+                    </small>
+                </div>
             </form>
             <footer class="modal-footer">
                 <button class="btn btn-secondary" id="modal-cancel-btn" type="button">取消</button>
@@ -242,6 +277,9 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- 烟花画布 -->
+    <canvas id="fireworks-canvas"></canvas>
 
     <!-- 确认对话框 -->
     <div class="confirm-dialog" id="confirm-dialog" role="alertdialog" aria-modal="true">
@@ -282,6 +320,7 @@
     <script src="js/features/channels.js"></script>
     <script src="js/features/droid.js"></script>
     <script src="js/features/settings.js"></script>
+    <script src="js/features/fireworks.js"></script>
     
     <!-- 主入口 -->
     <script src="app.js"></script>

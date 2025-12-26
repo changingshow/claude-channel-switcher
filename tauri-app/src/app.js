@@ -89,6 +89,15 @@ function setupEventListeners() {
     if (saveBtn) {
         saveBtn.addEventListener('click', () => channels.saveChannel());
     }
+
+    // 主题切换开关
+    const themeCheckbox = document.getElementById('theme-checkbox');
+    if (themeCheckbox) {
+        themeCheckbox.addEventListener('change', () => {
+            const newTheme = theme.toggle();
+            state.theme = newTheme;
+        });
+    }
 }
 
 /**

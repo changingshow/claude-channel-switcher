@@ -29,6 +29,13 @@ const translations = {
                 switch: '切换',
                 edit: '编辑',
                 delete: '删除'
+            },
+            balance: {
+                clickToQuery: '点击查询余额',
+                loading: '查询中...',
+                error: '查询失败',
+                noToken: '无 Token',
+                noField: '未设置字段'
             }
         },
         droid: {
@@ -88,7 +95,9 @@ const translations = {
                 token: 'API Token',
                 tokenPlaceholder: 'sk-ant-xxxxx...',
                 url: 'Base URL',
-                urlPlaceholder: 'https://api.anthropic.com'
+                urlPlaceholder: 'https://api.anthropic.com',
+                balanceField: '余额字段（可选）',
+                balanceFieldRequired: '余额字段（必填）'
             },
             buttons: {
                 cancel: '取消',
@@ -163,6 +172,7 @@ const translations = {
             errorUrlRequired: 'Base URL 不能为空',
             errorUrlInvalid: 'Base URL 必须是 http 或 https 标准链接',
             errorNameDuplicate: '渠道名称已存在，请使用其他名称',
+            errorBalanceFieldRequired: '填写了余额查询地址时，余额字段为必填项',
             confirmDelete: '确定要删除渠道「{name}」吗？'
         },
         aria: {
@@ -221,6 +231,13 @@ const translations = {
                 switch: 'Switch',
                 edit: 'Edit',
                 delete: 'Delete'
+            },
+            balance: {
+                clickToQuery: 'Click to query balance',
+                loading: 'Loading...',
+                error: 'Query failed',
+                noToken: 'No Token',
+                noField: 'Field not set'
             }
         },
         droid: {
@@ -280,7 +297,9 @@ const translations = {
                 token: 'API Token',
                 tokenPlaceholder: 'sk-ant-xxxxx...',
                 url: 'Base URL',
-                urlPlaceholder: 'https://api.anthropic.com'
+                urlPlaceholder: 'https://api.anthropic.com',
+                balanceField: 'Balance Field (Optional)',
+                balanceFieldRequired: 'Balance Field (Required)'
             },
             buttons: {
                 cancel: 'Cancel',
@@ -355,6 +374,7 @@ const translations = {
             errorUrlRequired: 'Base URL cannot be empty',
             errorUrlInvalid: 'Base URL must be a standard http or https link',
             errorNameDuplicate: 'Channel name already exists, please use another name',
+            errorBalanceFieldRequired: 'Balance field is required when balance URL is provided',
             confirmDelete: 'Are you sure you want to delete channel "{name}"?'
         },
         aria: {

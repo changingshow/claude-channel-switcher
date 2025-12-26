@@ -9,10 +9,10 @@ class ThemeManager {
      */
     applyTheme(themeName) {
         document.body.classList.toggle('light-theme', themeName === 'light');
-        
+
         // 设置 color-scheme
         document.documentElement.style.colorScheme = themeName;
-        
+
         // 更新 theme-color meta 标签
         let metaTheme = document.querySelector('meta[name="theme-color"]');
         if (!metaTheme) {
@@ -21,8 +21,31 @@ class ThemeManager {
             document.head.appendChild(metaTheme);
         }
         metaTheme.content = themeName === 'light' ? '#dcdce0' : '#28282b';
-        
-        // 自定义标题栏颜色会通过 CSS 变量自动更新，无需额外处理
+
+        // 更新主题切换开关状态
+        this.updateToggleState(themeName);
+    }
+
+    /**
+     * 更新主题切换开关状态
+     * @param {string} themeName - 当前主题名称
+     */
+    updateToggleState(themeName) {
+        const checkbox = document.getElementById('theme-checkbox');
+        if (checkbox) {
+            checkbox.checked = themeName === 'light';
+        }
+    }
+
+    /**
+     * 切换主题
+     */
+    toggle() {
+        const isLight = document.body.classList.contains('light-theme');
+        const newTheme = isLight ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        return newTheme;
     }
 }
 
