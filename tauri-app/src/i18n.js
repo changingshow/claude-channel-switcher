@@ -2,16 +2,16 @@ const translations = {
     'zh-CN': {
         app: {
             title: 'Claude 渠道切换器',
-            version: 'v3.0.0',
+            version: 'v3.9.9',
             description: 'Claude API 渠道管理和切换工具'
         },
         nav: {
-            channels: '渠道管理',
+            channels: 'Claude 渠道',
             droid: 'Droid 渠道',
             settings: '设置'
         },
         channels: {
-            title: '渠道管理',
+            title: 'Claude 渠道管理',
             count: '个渠道',
             refresh: '刷新',
             add: '新建渠道',
