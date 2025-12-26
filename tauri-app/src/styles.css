@@ -10,33 +10,33 @@
     --bg-secondary: #2f2f33;
     --bg-tertiary: #38383c;
     --bg-elevated: #404045;
-    
+
     --accent-primary: #0a84ff;
     --accent-secondary: #5e5ce6;
     --accent-hover: #409cff;
-    
+
     --text-primary: #f5f5f7;
     --text-secondary: #e5e5e7;
     --text-tertiary: #a1a1a6;
     --text-muted: #6e6e73;
-    
+
     --success: #30d158;
     --danger: #ff453a;
     --warning: #ffd60a;
-    
+
     --border-color: rgba(255, 255, 255, 0.08);
     --separator: rgba(84, 84, 88, 0.65);
     --shadow-sm: rgba(0, 0, 0, 0.3);
     --shadow-md: rgba(0, 0, 0, 0.5);
     --shadow-lg: rgba(0, 0, 0, 0.7);
-    
+
     --glass-bg: rgba(30, 30, 30, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
     --card-bg: #33333a;
 
     --transition-standard: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    
+
     --border-radius-sm: 6px;
     --border-radius-md: 10px;
     --border-radius-lg: 14px;
@@ -91,7 +91,11 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-button, input, .channels-container, .settings-container, .main-content {
+button,
+input,
+.channels-container,
+.settings-container,
+.main-content {
     -webkit-app-region: no-drag;
 }
 
@@ -257,8 +261,15 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .logo-text {
@@ -370,7 +381,7 @@ button, input, .channels-container, .settings-container, .main-content {
     justify-content: center;
 }
 
-.sidebar-theme-switch + .version {
+.sidebar-theme-switch+.version {
     margin-top: 0;
 }
 
@@ -449,8 +460,15 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 @keyframes twinkle {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* 滑块 - 月亮/太阳 */
@@ -481,7 +499,7 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 /* 切换到浅色模式 - 太阳 */
-.theme-switch input:checked + .slider {
+.theme-switch input:checked+.slider {
     background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 40%, #0ea5e9 100%);
     border-color: #60c5f0;
     box-shadow:
@@ -492,7 +510,7 @@ button, input, .channels-container, .settings-container, .main-content {
         0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.theme-switch:hover input:checked + .slider {
+.theme-switch:hover input:checked+.slider {
     border-color: #80d5ff;
     box-shadow:
         inset 0 3px 8px rgba(0, 0, 0, 0.15),
@@ -503,7 +521,7 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 /* 浅色模式 - 白云装饰 */
-.theme-switch input:checked + .slider::after {
+.theme-switch input:checked+.slider::after {
     opacity: 1;
     transform: scale(1);
     top: 10px;
@@ -522,11 +540,18 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 @keyframes floatCloud {
-    0%, 100% { transform: scale(1) translateX(0); }
-    50% { transform: scale(1) translateX(2px); }
+
+    0%,
+    100% {
+        transform: scale(1) translateX(0);
+    }
+
+    50% {
+        transform: scale(1) translateX(2px);
+    }
 }
 
-.theme-switch input:checked + .slider::before {
+.theme-switch input:checked+.slider::before {
     transform: translateX(30px) translateY(-50%);
     background: linear-gradient(145deg, #fef08a 0%, #fbbf24 40%, #f59e0b 100%);
     box-shadow:
@@ -536,7 +561,7 @@ button, input, .channels-container, .settings-container, .main-content {
         inset 0 -2px 4px rgba(234, 138, 0, 0.3);
 }
 
-.theme-switch:hover input:checked + .slider::before {
+.theme-switch:hover input:checked+.slider::before {
     box-shadow:
         0 0 10px 3px rgba(251, 191, 36, 0.8),
         0 0 20px 6px rgba(245, 158, 11, 0.5),
@@ -545,7 +570,7 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 /* 焦点状态 - 键盘访问 */
-.theme-switch input:focus-visible + .slider {
+.theme-switch input:focus-visible+.slider {
     outline: 2px solid var(--accent-primary);
     outline-offset: 3px;
 }
@@ -589,6 +614,7 @@ button, input, .channels-container, .settings-container, .main-content {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -690,12 +716,12 @@ button, input, .channels-container, .settings-container, .main-content {
 }
 
 .btn-edit {
-    background: #744082;
+    background: #5856D6;
     color: #ffffff;
 }
 
 .btn-edit:hover {
-    opacity: 0.9;
+    background: #4B49B8;
 }
 
 .btn-small {
@@ -782,8 +808,15 @@ body.light-theme .status-indicator.active {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 .channel-actions {
@@ -1111,6 +1144,7 @@ body.light-theme .modal {
         opacity: 0;
         transform: translateY(50px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1277,6 +1311,7 @@ body.light-theme .confirm-dialog {
         opacity: 0;
         transform: scale(0.9) translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);

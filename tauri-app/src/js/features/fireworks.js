@@ -1,319 +1,378 @@
 /**
- * 庆祝效果 - Canvas 烟花 + 彩带
+ * 🎆 庆祝彩蛋 - 烟花 + 彩带效果
+ * 点击版本号 3 次触发
  */
 class CelebrationManager {
+    // 配置常量
+    static CONFIG = {
+        CLICK_COUNT: 3,
+        CLICK_TIMEOUT: 2000,
+        GRAVITY: 0.08,
+        ROCKET_HEIGHT: [0.2, 0.4],     // 爆炸高度范围（从顶部算）
+        CONFETTI_COUNT: 200,
+        CONFETTI_STOP_THRESHOLD: 0.9,  // 彩带到达此位置时停止发射
+    };
+
+    // 粒子类型配置
+    static PARTICLE_TYPES = {
+        willow: { friction: 0.985, gravity: 2.5, trail: 6 },
+        chrysanthemum: { friction: 0.99, gravity: 1.5, trail: 8 },
+        star: { friction: 0.98, gravity: 1.8, trail: 5 },
+        circle: { friction: 0.985, gravity: 1.6, trail: 6 },
+    };
+
+    // 烟花配色
+    static PALETTES = [
+        ['#ff6b6b', '#ee5a52', '#ff8787', '#ffa8a8'],
+        ['#ffd43b', '#fab005', '#ffe066', '#fff3bf'],
+        ['#69db7c', '#40c057', '#8ce99a', '#b2f2bb'],
+        ['#74c0fc', '#339af0', '#a5d8ff', '#d0ebff'],
+        ['#b197fc', '#845ef7', '#d0bfff', '#e5dbff'],
+        ['#ffc9c9', '#ff8787', '#ffdeeb', '#f783ac'],
+        ['#63e6be', '#20c997', '#96f2d7', '#c3fae8'],
+        ['#ffa94d', '#fd7e14', '#ffc078', '#ffe8cc'],
+    ];
+
+    // 彩带配色（高饱和度）
+    static CONFETTI_COLORS = [
+        '#FF1744', '#F50057', '#D500F9', '#651FFF',
+        '#2979FF', '#00B0FF', '#00E5FF', '#1DE9B6',
+        '#00E676', '#76FF03', '#FFEA00', '#FFC400',
+        '#FF9100', '#FF3D00',
+    ];
+
     constructor() {
         this.clickCount = 0;
         this.clickTimer = null;
         this.isPlaying = false;
+        this.canLaunch = false;
+        this.animationId = null;
         this.canvas = null;
         this.ctx = null;
+        this.rockets = [];
         this.particles = [];
-        this.animationId = null;
-        this.colors = [
-            '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3',
-            '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43',
-            '#10ac84', '#ee5a24', '#0abde3', '#f368e0',
-            '#fd79a8', '#a29bfe', '#ffeaa7', '#dfe6e9'
-        ];
+        this.confetti = [];
+        this.wind = 0;
+        this.windDelta = 0;
         this.init();
     }
 
     init() {
-        const versionEl = document.getElementById('version-easter-egg');
-        if (!versionEl) return;
+        const el = document.getElementById('version-easter-egg');
+        if (!el) return;
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => this.onClick());
 
-        versionEl.style.cursor = 'pointer';
-        versionEl.addEventListener('click', () => this.handleClick());
-
-        // 初始化 Canvas
         this.canvas = document.getElementById('fireworks-canvas');
         if (this.canvas) {
             this.ctx = this.canvas.getContext('2d');
-            this.resizeCanvas();
-            window.addEventListener('resize', () => this.resizeCanvas());
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
         }
     }
 
-    resizeCanvas() {
+    resize() {
         if (this.canvas) {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
         }
     }
 
-    handleClick() {
-        this.clickCount++;
-
-        if (this.clickTimer) {
-            clearTimeout(this.clickTimer);
-        }
-
-        this.clickTimer = setTimeout(() => {
+    onClick() {
+        const { CLICK_COUNT, CLICK_TIMEOUT } = CelebrationManager.CONFIG;
+        clearTimeout(this.clickTimer);
+        this.clickTimer = setTimeout(() => this.clickCount = 0, CLICK_TIMEOUT);
+        if (++this.clickCount >= CLICK_COUNT && !this.isPlaying) {
             this.clickCount = 0;
-        }, 2000);
-
-        if (this.clickCount >= 3 && !this.isPlaying) {
-            this.clickCount = 0;
-            this.startCelebration();
+            this.start();
         }
     }
 
-    random(min, max) {
-        return Math.random() * (max - min) + min;
-    }
+    // 工具方法
+    rand = (min, max) => Math.random() * (max - min) + min;
+    randInt = (min, max) => Math.floor(this.rand(min, max + 1));
+    pick = arr => arr[this.randInt(0, arr.length - 1)];
+    hexToRgba = (hex, a) => {
+        const n = parseInt(hex.slice(1), 16);
+        return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+    };
 
-    startCelebration() {
-        this.isPlaying = true;
-        this.particles = [];
-        this.canLaunch = true;
-
-        // 显示 Canvas
-        if (this.canvas) {
-            this.canvas.classList.add('active');
-        }
-
-        // 启动烟花
-        this.launchFireworks();
-
-        // 启动彩带
-        this.launchConfetti();
-
-        // 开始动画循环
-        this.animate();
-
-        // 5秒后停止发射新烟花
-        setTimeout(() => {
-            this.canLaunch = false;
-        }, 5000);
-    }
-
-    stopCelebration() {
-        this.isPlaying = false;
-        this.canLaunch = false;
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
-        if (this.canvas) {
-            this.canvas.classList.remove('active');
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        }
-        this.particles = [];
-    }
-
-    // 创建烟花火箭
+    // ========== 烟花 ==========
     createRocket() {
-        const x = this.random(100, this.canvas.width - 100);
-        const y = this.canvas.height;
-        const hue = Math.floor(this.random(0, 360));
-        const color = `hsl(${hue}, 100%, 60%)`;
+        const { w, h } = { w: this.canvas.width, h: this.canvas.height };
+        const [minH, maxH] = CelebrationManager.CONFIG.ROCKET_HEIGHT;
+        const targetY = h * this.rand(minH, maxH);
+        const palette = this.pick(CelebrationManager.PALETTES);
 
-        this.particles.push({
-            x: x,
-            y: y,
-            color: color,
-            hue: hue,
-            velocity: {
-                x: this.random(-1, 1),
-                y: this.random(-14, -18)
-            },
-            alpha: 1,
-            friction: 0.98,
-            gravity: 0.12,
-            isRocket: true,
-            size: 3
+        this.rockets.push({
+            x: this.rand(w * 0.15, w * 0.85),
+            y: h,
+            vx: this.rand(-0.3, 0.3),
+            vy: -Math.sqrt(2 * CelebrationManager.CONFIG.GRAVITY * 1.5 * (h - targetY)) * this.rand(0.9, 1.1),
+            palette,
+            color: palette[0],
+            trail: [],
         });
     }
 
-    // 爆炸效果
-    explode(x, y, hue) {
-        const particleCount = 80;
-        for (let i = 0; i < particleCount; i++) {
-            const angle = (Math.PI * 2 / particleCount) * i;
-            const speed = this.random(2, 10);
-            // 稍微变化色相，产生渐变效果
-            const particleHue = hue + this.random(-20, 20);
+    updateRockets() {
+        const { GRAVITY } = CelebrationManager.CONFIG;
+        for (let i = this.rockets.length - 1; i >= 0; i--) {
+            const r = this.rockets[i];
+            r.trail.push({ x: r.x, y: r.y, a: 1 });
+            if (r.trail.length > 12) r.trail.shift();
+            r.trail.forEach(t => t.a *= 0.85);
 
-            this.particles.push({
-                x: x,
-                y: y,
-                color: `hsl(${particleHue}, 100%, 60%)`,
-                velocity: {
-                    x: Math.cos(angle) * speed,
-                    y: Math.sin(angle) * speed
-                },
-                alpha: 1,
-                friction: 0.96,
-                gravity: 0.15,
-                isRocket: false,
-                size: this.random(1.5, 3)
-            });
+            r.x += r.vx + this.wind * 0.3;
+            r.y += r.vy;
+            r.vy += GRAVITY * 1.5;
+            r.vx *= 0.99;
+
+            if (r.vy >= -2) {
+                this.explode(r.x, r.y, r.palette);
+                this.rockets.splice(i, 1);
+            }
         }
     }
 
-    // 发射烟花
-    launchFireworks() {
-        // 立即发射几个
-        for (let i = 0; i < 3; i++) {
-            setTimeout(() => {
-                if (this.canLaunch) this.createRocket();
-            }, i * 200);
+    drawRockets() {
+        for (const r of this.rockets) {
+            for (let i = 0; i < r.trail.length; i++) {
+                const t = r.trail[i];
+                if (t.a < 0.01) continue;
+                this.ctx.beginPath();
+                this.ctx.arc(t.x, t.y, 3 * i / r.trail.length, 0, Math.PI * 2);
+                this.ctx.fillStyle = this.hexToRgba(r.color, t.a * 0.8);
+                this.ctx.fill();
+            }
+            this.ctx.beginPath();
+            this.ctx.arc(r.x, r.y, 4, 0, Math.PI * 2);
+            this.ctx.fillStyle = r.color;
+            this.ctx.shadowBlur = 20;
+            this.ctx.shadowColor = r.color;
+            this.ctx.fill();
+            this.ctx.shadowBlur = 0;
         }
-
-        // 持续发射
-        const launchInterval = setInterval(() => {
-            if (!this.isPlaying || !this.canLaunch) {
-                clearInterval(launchInterval);
-                return;
-            }
-            if (Math.random() < 0.3) {
-                this.createRocket();
-            }
-        }, 300);
     }
 
-    // 彩带效果
-    launchConfetti() {
-        const container = document.createElement('div');
-        container.className = 'celebration-container';
-        document.body.appendChild(container);
+    explode(x, y, palette) {
+        const types = ['circle', 'chrysanthemum', 'willow', 'star', 'double'];
+        const type = this.pick(types);
+        const n = this.randInt(80, 120);
 
-        const confettiCount = 150;
+        if (type === 'star') {
+            const pts = this.randInt(5, 8);
+            for (let i = 0; i < pts; i++) {
+                const base = (Math.PI * 2 / pts) * i;
+                for (let j = 0; j < 15; j++) {
+                    this.addParticle(x, y, base + this.rand(-0.15, 0.15), this.rand(3, 7), palette, 'star');
+                }
+            }
+        } else if (type === 'double') {
+            for (let i = 0; i < n / 2; i++) {
+                this.addParticle(x, y, (Math.PI * 4 / n) * i, this.rand(2, 4), palette, 'circle');
+                this.addParticle(x, y, (Math.PI * 4 / n) * i + Math.PI / n, this.rand(4, 6), palette, 'circle');
+            }
+        } else {
+            const speeds = { circle: [2.5, 6], chrysanthemum: [4, 8], willow: [2, 5] };
+            const [min, max] = speeds[type];
+            for (let i = 0; i < n; i++) {
+                const angle = (Math.PI * 2 / n) * i + (type === 'chrysanthemum' ? this.rand(-0.1, 0.1) : 0);
+                this.addParticle(x, y, angle, this.rand(min, max), palette, type);
+            }
+        }
+    }
 
-        for (let i = 0; i < confettiCount; i++) {
+    addParticle(x, y, angle, speed, palette, type) {
+        const cfg = CelebrationManager.PARTICLE_TYPES[type] || CelebrationManager.PARTICLE_TYPES.circle;
+        this.particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            color: this.pick(palette),
+            size: this.rand(1.5, 3),
+            life: 1,
+            decay: this.rand(0.008, 0.014),
+            friction: cfg.friction,
+            gravity: cfg.gravity,
+            trailLen: cfg.trail,
+            trail: [],
+            twinkle: Math.random() > 0.7,
+        });
+    }
+
+    updateParticles() {
+        const { GRAVITY } = CelebrationManager.CONFIG;
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.trail.push({ x: p.x, y: p.y, a: p.life });
+            if (p.trail.length > p.trailLen) p.trail.shift();
+
+            p.x += p.vx + this.wind;
+            p.y += p.vy;
+            p.vx *= p.friction;
+            p.vy *= p.friction;
+            p.vy += GRAVITY * p.gravity;
+            p.life -= p.decay;
+
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+    }
+
+    drawParticles() {
+        const now = Date.now();
+        for (const p of this.particles) {
+            // 拖尾
+            for (let i = 0; i < p.trail.length; i++) {
+                const t = p.trail[i];
+                const a = (i / p.trail.length) * t.a * 0.4;
+                if (a < 0.01) continue;
+                this.ctx.beginPath();
+                this.ctx.arc(t.x, t.y, p.size * (0.4 + 0.6 * i / p.trail.length), 0, Math.PI * 2);
+                this.ctx.fillStyle = this.hexToRgba(p.color, a);
+                this.ctx.fill();
+            }
+            // 粒子
+            let a = p.life;
+            if (p.twinkle) a *= 0.5 + Math.sin(now * 0.02 + p.x) * 0.5;
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            this.ctx.fillStyle = this.hexToRgba(p.color, a);
+            this.ctx.shadowBlur = 8;
+            this.ctx.shadowColor = p.color;
+            this.ctx.fill();
+            this.ctx.shadowBlur = 0;
+        }
+    }
+
+    // ========== 彩带 ==========
+    createConfetti() {
+        const { CONFETTI_COUNT } = CelebrationManager.CONFIG;
+        const colors = CelebrationManager.CONFETTI_COLORS;
+        const w = this.canvas.width;
+
+        for (let i = 0; i < CONFETTI_COUNT; i++) {
             setTimeout(() => {
                 if (!this.isPlaying) return;
-
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-
-                const color = this.colors[Math.floor(Math.random() * this.colors.length)];
-                const width = 8 + Math.random() * 8;
-                const height = 15 + Math.random() * 15;
-
-                confetti.style.width = width + 'px';
-                confetti.style.height = height + 'px';
-                confetti.style.background = color;
-                confetti.style.left = Math.random() * window.innerWidth + 'px';
-                confetti.style.top = '-30px';
-                confetti.style.borderRadius = Math.random() > 0.5 ? '2px' : '50%';
-
-                container.appendChild(confetti);
-
-                const duration = 3000 + Math.random() * 2000;
-                const horizontalDrift = (Math.random() - 0.5) * 200;
-                const rotations = 2 + Math.random() * 4;
-
-                confetti.animate([
-                    {
-                        transform: `translateX(0) translateY(0) rotate(0deg)`,
-                        opacity: 1
-                    },
-                    {
-                        transform: `translateX(${horizontalDrift * 0.3}px) translateY(${window.innerHeight * 0.3}px) rotate(${rotations * 120}deg)`,
-                        opacity: 1,
-                        offset: 0.3
-                    },
-                    {
-                        transform: `translateX(${horizontalDrift * 0.7}px) translateY(${window.innerHeight * 0.7}px) rotate(${rotations * 280}deg)`,
-                        opacity: 0.8,
-                        offset: 0.7
-                    },
-                    {
-                        transform: `translateX(${horizontalDrift}px) translateY(${window.innerHeight + 50}px) rotate(${rotations * 360}deg)`,
-                        opacity: 0
-                    }
-                ], {
-                    duration: duration,
-                    easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
-                    fill: 'forwards'
+                this.confetti.push({
+                    x: this.rand(0, w),
+                    y: this.rand(-60, -10),
+                    vx: this.rand(-1.5, 1.5),
+                    vy: this.rand(2, 4),
+                    w: this.rand(10, 18),
+                    h: this.rand(18, 30),
+                    color: this.pick(colors),
+                    rot: this.rand(0, Math.PI * 2),
+                    rotV: this.rand(-0.15, 0.15),
+                    osc: this.rand(0, Math.PI * 2),
+                    oscV: this.rand(0.03, 0.08),
+                    oscD: this.rand(1, 3),
                 });
-
-                setTimeout(() => confetti.remove(), duration);
-            }, Math.random() * 2000);
+            }, i * 12);
         }
-
-        // 清理容器
-        setTimeout(() => container.remove(), 6000);
     }
 
-    // 动画循环
+    updateConfetti() {
+        const h = this.canvas.height;
+        for (let i = this.confetti.length - 1; i >= 0; i--) {
+            const c = this.confetti[i];
+            c.osc += c.oscV;
+            c.x += c.vx + Math.sin(c.osc) * c.oscD + this.wind * 0.5;
+            c.y += c.vy;
+            c.rot += c.rotV;
+            c.vy = Math.min(c.vy + 0.02, 6);
+            if (c.y > h + 30) this.confetti.splice(i, 1);
+        }
+    }
+
+    drawConfetti() {
+        for (const c of this.confetti) {
+            this.ctx.save();
+            this.ctx.translate(c.x, c.y);
+            this.ctx.rotate(c.rot);
+            this.ctx.scale(Math.cos(c.osc * 2), 1);
+            this.ctx.beginPath();
+            this.ctx.roundRect(-c.w / 2, -c.h / 2, c.w, c.h, 2);
+            this.ctx.fillStyle = c.color;
+            this.ctx.fill();
+            this.ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            this.ctx.fillRect(-c.w / 2, -c.h / 2, c.w * 0.3, c.h);
+            this.ctx.restore();
+        }
+    }
+
+    // ========== 主控制 ==========
+    start() {
+        this.isPlaying = true;
+        this.canLaunch = true;
+        this.rockets = [];
+        this.particles = [];
+        this.confetti = [];
+        this.wind = 0;
+        this.windDelta = 0;
+
+        this.canvas?.classList.add('active');
+        this.launchFireworks();
+        this.createConfetti();
+        this.animate();
+    }
+
+    launchFireworks() {
+        for (let i = 0; i < 4; i++) {
+            setTimeout(() => this.canLaunch && this.createRocket(), i * 150);
+        }
+        const id = setInterval(() => {
+            if (!this.isPlaying || !this.canLaunch) return clearInterval(id);
+            if (Math.random() < 0.4) this.createRocket();
+        }, 250);
+    }
+
     animate() {
         if (!this.isPlaying) return;
 
-        // 清除画布保持透明
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 更新和绘制粒子
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
+        // 风力
+        this.windDelta += this.rand(-0.01, 0.01);
+        this.windDelta *= 0.98;
+        this.wind = Math.max(-0.5, Math.min(0.5, this.wind + this.windDelta));
 
-            // 更新位置（先更新再绘制）
-            p.velocity.x *= p.friction;
-            p.velocity.y *= p.friction;
+        this.updateRockets();
+        this.updateParticles();
+        this.updateConfetti();
 
-            if (!p.isRocket) {
-                p.velocity.y += p.gravity;
-                p.alpha -= 0.012;
+        // 彩带到底部时停止发射
+        if (this.canLaunch && this.confetti.length > 0) {
+            const lowest = Math.max(...this.confetti.map(c => c.y));
+            if (lowest > this.canvas.height * CelebrationManager.CONFIG.CONFETTI_STOP_THRESHOLD) {
+                this.canLaunch = false;
             }
-
-            p.x += p.velocity.x;
-            p.y += p.velocity.y;
-
-            // 移除消失的粒子（alpha 阈值提高，避免闪现）
-            if (p.alpha <= 0.05) {
-                this.particles.splice(i, 1);
-                continue;
-            }
-
-            // 火箭到达顶点时爆炸
-            if (p.isRocket && p.velocity.y >= -1) {
-                this.particles.splice(i, 1);
-                this.explode(p.x, p.y, p.hue);
-                continue;
-            }
-
-            // 保存历史位置用于拖尾
-            if (!p.trail) p.trail = [];
-            p.trail.push({ x: p.x, y: p.y });
-            if (p.trail.length > 6) p.trail.shift();
-
-            // 绘制拖尾
-            for (let j = 0; j < p.trail.length; j++) {
-                const t = p.trail[j];
-                const trailAlpha = (j / p.trail.length) * p.alpha * 0.4;
-                if (trailAlpha < 0.02) continue;
-                this.ctx.save();
-                this.ctx.globalAlpha = trailAlpha;
-                this.ctx.beginPath();
-                this.ctx.arc(t.x, t.y, p.size * (0.3 + 0.7 * j / p.trail.length), 0, Math.PI * 2);
-                this.ctx.fillStyle = p.color;
-                this.ctx.fill();
-                this.ctx.restore();
-            }
-
-            // 绘制粒子
-            this.ctx.save();
-            this.ctx.globalAlpha = p.alpha;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            this.ctx.fillStyle = p.color;
-            this.ctx.shadowBlur = p.isRocket ? 15 : 10;
-            this.ctx.shadowColor = p.color;
-            this.ctx.fill();
-            this.ctx.restore();
         }
 
-        // 如果停止发射且没有粒子了，结束动画
-        if (!this.canLaunch && this.particles.length === 0) {
-            this.stopCelebration();
-            return;
+        this.drawConfetti();
+        this.drawRockets();
+        this.drawParticles();
+
+        // 结束检测
+        if (!this.canLaunch && !this.rockets.length && !this.particles.length && !this.confetti.length) {
+            return this.stop();
         }
 
         this.animationId = requestAnimationFrame(() => this.animate());
     }
+
+    stop() {
+        this.isPlaying = false;
+        this.canLaunch = false;
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+        this.canvas?.classList.remove('active');
+        this.ctx?.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.rockets = [];
+        this.particles = [];
+        this.confetti = [];
+    }
 }
 
-// 创建全局实例
+// 初始化
 const celebration = new CelebrationManager();
