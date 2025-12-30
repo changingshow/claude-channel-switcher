@@ -131,7 +131,7 @@ class ChannelManager {
         card.className = `channel-card${isActive ? ' active' : ''}`;
 
         const config = state.channels[name];
-        const hasBalanceApi = config?.balanceApi?.url && config?.balanceApi?.field;
+        const hasBalanceApi = config?.balanceApi?.url;
 
         const statusText = isActive ? i18n.t('channels.status.active') : i18n.t('channels.status.inactive');
         const statusIndicator = `<span class="status-indicator ${isActive ? 'active' : ''}"></span> ${statusText}`;
@@ -391,7 +391,7 @@ class ChannelManager {
     async queryBalance(name, balanceEl) {
         const config = state.channels[name];
         const balanceApi = config?.balanceApi;
-        if (!balanceApi?.url || !balanceApi?.field) return;
+        if (!balanceApi?.url) return;
 
         const balanceValue = balanceEl.querySelector('.balance-value');
         const token = config.env?.ANTHROPIC_AUTH_TOKEN;
@@ -408,7 +408,12 @@ class ChannelManager {
             balanceValue.classList.remove('hint');
 
             if (result.success && result.data) {
-                balanceValue.textContent = this.extractBalanceValue(result.data, balanceApi.field);
+                // 如果配置了字段路径，则提取字段值；否则显示原始响应
+                if (balanceApi.field) {
+                    balanceValue.textContent = this.extractBalanceValue(result.data, balanceApi.field);
+                } else {
+                    balanceValue.textContent = result.data;
+                }
             } else {
                 balanceValue.textContent = i18n.t('channels.balance.error');
             }

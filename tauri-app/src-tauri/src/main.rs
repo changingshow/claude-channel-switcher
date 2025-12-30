@@ -703,7 +703,7 @@ fn main() {
 
 #[tauri::command]
 async fn query_balance(url: String, method: String, token: String) -> ApiResponse<String> {
-    let final_url = url.replace("{apikey}", &token);
+    let final_url = url.replace("{key}", &token);
     let client = reqwest::Client::new();
 
     let request = match method.to_uppercase().as_str() {
