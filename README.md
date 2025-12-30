@@ -2,6 +2,32 @@
 
 一个现代化的 Claude API 渠道管理工具，提供流畅的渠道切换体验。
 
+## ⚠️ 重要提示
+
+> **推荐使用 Tauri 版本**：Tauri 版本是最新维护的版本，功能最全，打包后的 exe 仅约 5MB。
+> 
+> **自行打包**：如需自行打包，请打包 `tauri-app/` 目录下的 Tauri 版本。
+> 
+> **Release 说明**：GitHub Release 中的 exe 文件不一定是最新版本，建议自行拉取代码打包以获取最新功能。
+
+### 快速打包指南
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/changingshow/claude-channel-switcher.git
+cd claude-channel-switcher/tauri-app
+
+# 2. 安装依赖
+npm install
+
+# 3. 打包（生成安装包在 src-tauri/target/release/bundle/ 目录）
+npm run build
+```
+
+**前置要求**：
+- [Rust](https://www.rust-lang.org/tools/install) 1.70+
+- [Node.js](https://nodejs.org/) 18+
+
 ## 🆕 最新更新 (v3.1.0)
 
 > **注意**：本次更新仅针对 **Tauri 版本**，建议使用 Tauri 版本，打包后的 exe 仅约 5MB，远小于 Electron 版本的 150MB。
