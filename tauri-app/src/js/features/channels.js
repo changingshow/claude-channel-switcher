@@ -257,10 +257,10 @@ class ChannelManager {
      */
     async launchClaude(name) {
         try {
-            const result = await api.launchClaude(state.terminal, state.terminalDir);
+            const result = await api.launchClaude(state.terminalDir);
 
             if (result.success) {
-                toast.show(i18n.t('messages.channelLaunched', { name, terminal: state.terminal }));
+                toast.show(i18n.t('messages.channelLaunched', { name }));
             } else {
                 ErrorHandler.showError(result.error, '启动失败');
             }

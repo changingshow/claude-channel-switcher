@@ -107,21 +107,11 @@ class TauriAPI {
 
     /**
      * 启动 Claude
-     * @param {string} terminal - 终端类型
      * @param {string} terminalDir - 终端工作目录
      * @returns {Promise<ApiResponse>} 启动结果
      */
-    async launchClaude(terminal, terminalDir) {
-        return await this.safeInvoke('launch_claude', { terminal, terminalDir });
-    }
-
-    /**
-     * 检查终端是否可用
-     * @param {string} terminal - 终端类型
-     * @returns {Promise<ApiResponse>} 检查结果
-     */
-    async checkTerminalAvailable(terminal) {
-        return await this.safeInvoke('check_terminal_available', { terminal });
+    async launchClaude(terminalDir) {
+        return await this.safeInvoke('launch_claude', { terminalDir });
     }
 
     /**
@@ -221,12 +211,11 @@ class TauriAPI {
 
     /**
      * 启动 Droid
-     * @param {string} terminal - 终端类型
      * @param {string} terminalDir - 终端工作目录
      * @returns {Promise<ApiResponse>} 启动结果
      */
-    async launchDroid(terminal, terminalDir) {
-        return await this.safeInvoke('launch_droid', { terminal, terminalDir });
+    async launchDroid(terminalDir) {
+        return await this.safeInvoke('launch_droid', { terminalDir });
     }
 
     /**
@@ -238,6 +227,53 @@ class TauriAPI {
      */
     async queryBalance(url, method, token) {
         return await this.safeInvoke('query_balance', { url, method, token });
+    }
+
+    // ==================== StatusLine 管理 API ====================
+
+    /**
+     * 获取 StatusLine 文件列表
+     * @returns {Promise<ApiResponse>} 文件列表
+     */
+    async getStatuslineFiles() {
+        return await this.safeInvoke('get_statusline_files');
+    }
+
+    /**
+     * 读取 StatusLine 文件内容
+     * @param {string} fileName - 文件名
+     * @returns {Promise<ApiResponse>} 文件内容
+     */
+    async readStatuslineFile(fileName) {
+        return await this.safeInvoke('read_statusline_file', { fileName });
+    }
+
+    /**
+     * 保存 StatusLine 文件
+     * @param {string} fileName - 文件名
+     * @param {string} content - 文件内容
+     * @returns {Promise<ApiResponse>} 保存结果
+     */
+    async saveStatuslineFile(fileName, content) {
+        return await this.safeInvoke('save_statusline_file', { fileName, content });
+    }
+
+    /**
+     * 删除 StatusLine 文件
+     * @param {string} fileName - 文件名
+     * @returns {Promise<ApiResponse>} 删除结果
+     */
+    async deleteStatuslineFile(fileName) {
+        return await this.safeInvoke('delete_statusline_file', { fileName });
+    }
+
+    /**
+     * 应用 StatusLine 到 settings.json
+     * @param {string} fileName - 文件名
+     * @returns {Promise<ApiResponse>} 应用结果
+     */
+    async applyStatuslineToSettings(fileName) {
+        return await this.safeInvoke('apply_statusline_to_settings', { fileName });
     }
 }
 

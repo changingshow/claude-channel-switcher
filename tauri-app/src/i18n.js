@@ -8,6 +8,7 @@ const translations = {
         nav: {
             channels: 'Claude 渠道',
             droid: 'Droid 渠道',
+            statusline: 'StatusLine',
             settings: '设置'
         },
         channels: {
@@ -77,12 +78,64 @@ const translations = {
                 channelUpdated: 'Droid 渠道已更新',
                 channelDeleted: 'Droid 渠道 {name} 已删除',
                 channelSwitched: '已切换到 Droid 渠道：{name}',
-                channelLaunched: '已在新窗口中启动 Droid\n当前渠道：{name}\n终端：{terminal}',
+                channelLaunched: '已在新窗口中启动 Droid\n当前渠道：{name}',
                 channelsRefreshed: 'Droid 渠道列表已刷新',
                 errorNameRequired: '请输入渠道名称',
                 errorApiKeyRequired: '请输入 API Key',
                 errorNameDuplicate: '渠道名称已存在，请使用其他名称',
                 confirmDelete: '确定要删除 Droid 渠道「{name}」吗？'
+            }
+        },
+        statusline: {
+            items: {
+                title: '显示项目'
+            },
+            separator: {
+                title: '分隔线',
+                style: '样式',
+                custom: '自定义分隔符',
+                color: '分隔符颜色'
+            },
+            preview: {
+                title: '实时预览',
+                terminalTitle: 'PowerShell - Claude Code',
+                noItems: '暂无启用的项目'
+            },
+            actions: {
+                save: '保存',
+                reset: '重置为默认'
+            },
+            files: {
+                title: '样式文件',
+                create: '新建',
+                newFile: '新样式（未保存）',
+                empty: '暂无样式文件',
+                emptyHint: '点击右上角「新建」创建第一个样式',
+                apply: '应用此样式',
+                delete: '删除',
+                saveDialogTitle: '保存样式',
+                nameLabel: '样式名称',
+                namePlaceholder: '例如：简约、彩色、专业',
+                nameHint: '文件将保存为 statusline_名称.ps1',
+                nameRequired: '请输入样式名称',
+                nameInvalid: '名称只能包含字母、数字、下划线和中文',
+                nameExists: '该名称已存在，请使用其他名称',
+                confirmDeleteTitle: '确认删除',
+                confirmDeleteMessage: '确定要删除样式「{name}」吗？',
+                saveChoiceMessage: '要保存对样式「{name}」的修改吗？',
+                overwrite: '覆盖保存',
+                saveAs: '另存为',
+                justNow: '刚刚',
+                minutesAgo: '分钟前',
+                hoursAgo: '小时前',
+                yesterday: '昨天',
+                daysAgo: '天前'
+            },
+            messages: {
+                fileSaved: '样式「{name}」已保存',
+                fileDeleted: '样式「{name}」已删除',
+                applied: '已应用样式「{name}」',
+                reset: '配置已重置为默认'
             }
         },
         modal: {
@@ -125,17 +178,8 @@ const translations = {
                 label: '配置文件路径'
             },
             terminal: {
-                title: '终端设置',
-                description: '选择启动 Claude 时使用的终端',
-                placeholder: '例如：powershell, pwsh, cmd',
-                save: '保存',
-                label: '终端命令',
-                presets: {
-                    wt: 'Windows Terminal',
-                    powershell: 'PowerShell',
-                    pwsh: 'PowerShell Core',
-                    cmd: 'CMD'
-                }
+                title: '终端程序',
+                description: '选择启动 Claude 时使用的终端'
             },
             terminalDir: {
                 title: '终端工作目录',
@@ -154,10 +198,9 @@ const translations = {
             channelUpdated: '渠道已更新',
             channelDeleted: '渠道 {name} 已删除',
             channelSwitched: '已切换到渠道：{name}',
-            channelLaunched: '已在新窗口中启动 Claude\n当前渠道：{name}\n终端：{terminal}',
+            channelLaunched: '已在新窗口中启动 Claude\n当前渠道：{name}',
             channelsRefreshed: '渠道列表已刷新',
             pathUpdated: '配置路径已更新',
-            terminalSaved: '终端设置已保存',
             terminalSet: '终端已设置为：{terminal}',
             terminalDirUpdated: '终端工作目录已更新',
             themeChanged: '已切换到{theme}主题',
@@ -181,15 +224,14 @@ const translations = {
             refreshDroid: '刷新 Droid 渠道列表',
             addDroid: '新建 Droid 渠道',
             droidPage: 'Droid 渠道管理',
+            statuslinePage: 'StatusLine 配置页面',
             browseFolder: '浏览文件夹',
-            saveTerminal: '保存终端设置',
             closeDialog: '关闭对话框',
             channelManagement: '渠道管理',
             settingsPage: '设置',
             mainNav: '主导航',
             themeSelection: '主题选择',
             languageSelection: '语言选择',
-            terminalPresets: '终端预设',
             minimize: '最小化',
             maximize: '最大化',
             close: '关闭'
@@ -210,6 +252,7 @@ const translations = {
         nav: {
             channels: 'Channels',
             droid: 'Droid Channels',
+            statusline: 'StatusLine',
             settings: 'Settings'
         },
         channels: {
@@ -279,12 +322,64 @@ const translations = {
                 channelUpdated: 'Droid channel updated',
                 channelDeleted: 'Droid channel {name} deleted',
                 channelSwitched: 'Switched to Droid channel: {name}',
-                channelLaunched: 'Droid launched in new window\nChannel: {name}\nTerminal: {terminal}',
+                channelLaunched: 'Droid launched in new window\nChannel: {name}',
                 channelsRefreshed: 'Droid channels refreshed',
                 errorNameRequired: 'Please enter channel name',
                 errorApiKeyRequired: 'Please enter API Key',
                 errorNameDuplicate: 'Channel name already exists, please use another name',
                 confirmDelete: 'Are you sure you want to delete Droid channel "{name}"?'
+            }
+        },
+        statusline: {
+            items: {
+                title: 'Display Items'
+            },
+            separator: {
+                title: 'Separator',
+                style: 'Style',
+                custom: 'Custom Separator',
+                color: 'Separator Color'
+            },
+            preview: {
+                title: 'Live Preview',
+                terminalTitle: 'PowerShell - Claude Code',
+                noItems: 'No enabled items'
+            },
+            actions: {
+                save: 'Save',
+                reset: 'Reset to Default'
+            },
+            files: {
+                title: 'Style Files',
+                create: 'New',
+                newFile: 'New Style (Unsaved)',
+                empty: 'No style files yet',
+                emptyHint: 'Click "New" in the top right to create your first style',
+                apply: 'Apply this style',
+                delete: 'Delete',
+                saveDialogTitle: 'Save Style',
+                nameLabel: 'Style Name',
+                namePlaceholder: 'e.g., simple, colorful, professional',
+                nameHint: 'File will be saved as statusline_name.ps1',
+                nameRequired: 'Please enter a style name',
+                nameInvalid: 'Name can only contain letters, numbers, underscores and Chinese characters',
+                nameExists: 'This name already exists, please use a different name',
+                confirmDeleteTitle: 'Confirm Delete',
+                confirmDeleteMessage: 'Are you sure you want to delete style "{name}"?',
+                saveChoiceMessage: 'Save changes to style "{name}"?',
+                overwrite: 'Overwrite',
+                saveAs: 'Save As',
+                justNow: 'Just now',
+                minutesAgo: 'm ago',
+                hoursAgo: 'h ago',
+                yesterday: 'Yesterday',
+                daysAgo: 'd ago'
+            },
+            messages: {
+                fileSaved: 'Style "{name}" saved',
+                fileDeleted: 'Style "{name}" deleted',
+                applied: 'Style "{name}" applied',
+                reset: 'Configuration reset to default'
             }
         },
         modal: {
@@ -327,17 +422,8 @@ const translations = {
                 label: 'Configuration path'
             },
             terminal: {
-                title: 'Terminal',
-                description: 'Choose the terminal to launch Claude',
-                placeholder: 'e.g., powershell, pwsh, cmd',
-                save: 'Save',
-                label: 'Terminal command',
-                presets: {
-                    wt: 'Windows Terminal',
-                    powershell: 'PowerShell',
-                    pwsh: 'PowerShell Core',
-                    cmd: 'CMD'
-                }
+                title: 'Terminal Program',
+                description: 'Choose the terminal to launch Claude'
             },
             terminalDir: {
                 title: 'Terminal Working Directory',
@@ -356,10 +442,9 @@ const translations = {
             channelUpdated: 'Channel updated',
             channelDeleted: 'Channel {name} deleted',
             channelSwitched: 'Switched to channel: {name}',
-            channelLaunched: 'Claude launched in new window\nChannel: {name}\nTerminal: {terminal}',
+            channelLaunched: 'Claude launched in new window\nChannel: {name}',
             channelsRefreshed: 'Channels refreshed',
             pathUpdated: 'Config path updated',
-            terminalSaved: 'Terminal settings saved',
             terminalSet: 'Terminal set to: {terminal}',
             terminalDirUpdated: 'Terminal working directory updated',
             themeChanged: 'Switched to {theme} theme',
@@ -383,15 +468,14 @@ const translations = {
             refreshDroid: 'Refresh Droid channel list',
             addDroid: 'Add new Droid channel',
             droidPage: 'Droid Channel Management',
+            statuslinePage: 'StatusLine Configuration Page',
             browseFolder: 'Browse folder',
-            saveTerminal: 'Save terminal settings',
             closeDialog: 'Close dialog',
             channelManagement: 'Channel management',
             settingsPage: 'Settings',
             mainNav: 'Main navigation',
             themeSelection: 'Theme selection',
             languageSelection: 'Language selection',
-            terminalPresets: 'Terminal presets',
             minimize: 'Minimize',
             maximize: 'Maximize',
             close: 'Close'

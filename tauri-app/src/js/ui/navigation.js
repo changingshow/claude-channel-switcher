@@ -29,10 +29,15 @@ class NavigationManager {
         if (targetPage) {
             targetPage.classList.add('active');
         }
-        
+
         // 切换到 droid 页面时刷新渠道列表
         if (pageName === 'droid' && typeof droid !== 'undefined') {
             droid.loadChannels();
+        }
+
+        // 切换到 statusline 页面时刷新文件列表
+        if (pageName === 'statusline' && typeof statusline !== 'undefined') {
+            statusline.loadFiles();
         }
     }
 
@@ -66,6 +71,8 @@ class NavigationManager {
                 ariaKey = 'channelManagement';
             } else if (page === 'droid') {
                 ariaKey = 'droidPage';
+            } else if (page === 'statusline') {
+                ariaKey = 'statuslinePage';
             }
             item.setAttribute('aria-label', i18n.t(`aria.${ariaKey}`));
         });

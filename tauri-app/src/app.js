@@ -48,6 +48,7 @@ async function initializeApp() {
     confirmDialog.init();
     settings.init();
     droid.init();
+    statusline.init();
     
     // 更新 UI 语言
     updateUILanguage();
@@ -117,6 +118,7 @@ function updateUILanguage() {
     navigation.updateLanguage();
     channels.updateLanguage();
     droid.updateLanguage();
+    statusline.updateLanguage();
     settings.updateLanguage();
     modal.updateLanguage();
     confirmDialog.updateLanguage();

@@ -39,6 +39,10 @@
                     <span class="nav-icon" aria-hidden="true">🏠</span>
                     <span class="nav-text"></span>
                 </button>
+                <button class="nav-item" data-page="statusline" aria-label="StatusLine 配置">
+                    <span class="nav-icon" aria-hidden="true">📊</span>
+                    <span class="nav-text"></span>
+                </button>
                 <button class="nav-item" data-page="droid" aria-label="Droid 渠道">
                     <span class="nav-icon" aria-hidden="true">🤖</span>
                     <span class="nav-text"></span>
@@ -102,6 +106,92 @@
                 <div class="channels-container" id="droid-list" role="list"></div>
             </section>
 
+            <section id="statusline-page" class="page">
+                <div class="statusline-layout">
+                    <!-- 左侧：配置编辑区域 -->
+                    <div class="config-panel">
+                        <div class="config-section">
+                            <div class="section-header">
+                                <h3></h3>
+                                <span class="current-file-name" id="current-file-name"></span>
+                            </div>
+
+                            <!-- 显示项目 -->
+                            <div class="items-section">
+                                <h4></h4>
+                                <div class="items-list" id="statusline-items"></div>
+                            </div>
+
+                            <!-- 分隔线配置 -->
+                            <div class="separator-section">
+                                <h4></h4>
+                                <div class="separator-config-row">
+                                    <input type="text" id="separator-input" class="separator-text-input" value="|" maxlength="3" title="分隔符">
+                                    <input type="color" id="separator-color-picker" value="#d0d0d0" class="color-picker-input">
+                                    <input type="text" id="separator-color-hex" class="color-hex-input" value="#d0d0d0" maxlength="7">
+                                    <label class="separator-checkbox">
+                                        <input type="checkbox" id="separator-start">
+                                        <span>开头</span>
+                                    </label>
+                                    <label class="separator-checkbox">
+                                        <input type="checkbox" id="separator-end">
+                                        <span>结尾</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 实时预览 -->
+                            <div class="preview-section">
+                                <div class="preview-header">
+                                    <h4></h4>
+                                    <div class="preview-bg-config">
+                                        <input type="color" id="preview-bg-picker" value="#1e1e1e" class="color-picker-input" title="预览背景色">
+                                        <input type="text" id="preview-bg-hex" class="color-hex-input" value="#1e1e1e" maxlength="7">
+                                    </div>
+                                </div>
+                                <div class="terminal-preview" id="terminal-preview">
+                                    <div class="preview-line top"></div>
+                                    <div class="preview-cursor">█</div>
+                                    <div class="preview-line bottom"></div>
+                                    <div class="terminal-statusline" id="preview-statusline"></div>
+                                </div>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="config-actions">
+                                <button class="btn btn-secondary" id="reset-current-btn">
+                                    <span aria-hidden="true">🔄</span>
+                                    <span></span>
+                                </button>
+                                <button class="btn btn-primary" id="save-current-btn">
+                                    <span aria-hidden="true">💾</span>
+                                    <span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：文件列表 -->
+                    <div class="files-panel">
+                        <div class="files-header">
+                            <h3></h3>
+                            <div class="files-header-actions">
+                                <button class="btn btn-secondary btn-small" id="refresh-files-btn" title="刷新列表">
+                                    <span aria-hidden="true">🔄</span>
+                                </button>
+                                <button class="btn btn-primary btn-small" id="create-new-btn">
+                                    <span aria-hidden="true">➕</span>
+                                    <span></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="files-list" id="statusline-files">
+                            <!-- 文件列表动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="settings-page" class="page">
                 <header class="page-header">
                     <h2 class="page-title"></h2>
@@ -115,21 +205,6 @@
                             <label for="config-path-input" class="sr-only">配置文件路径</label>
                             <input type="text" id="config-path-input" class="setting-input" readonly aria-readonly="true">
                             <button class="btn btn-secondary" id="browse-path-btn" aria-label="浏览文件夹"></button>
-                        </div>
-                    </article>
-
-                    <article class="setting-card">
-                        <h3 class="setting-title"></h3>
-                        <p class="setting-description"></p>
-                        <div class="preset-buttons" role="group" aria-label="终端预设">
-                            <button class="btn btn-preset terminal-btn" data-terminal="wt" aria-label="Windows Terminal">
-                            </button>
-                            <button class="btn btn-preset terminal-btn" data-terminal="powershell" aria-label="PowerShell">
-                            </button>
-                            <button class="btn btn-preset terminal-btn" data-terminal="pwsh" aria-label="PowerShell Core">
-                            </button>
-                            <button class="btn btn-preset terminal-btn" data-terminal="cmd" aria-label="CMD">
-                            </button>
                         </div>
                     </article>
 
@@ -306,6 +381,7 @@
     <script src="js/features/droid.js"></script>
     <script src="js/features/settings.js"></script>
     <script src="js/features/fireworks.js"></script>
+    <script src="js/features/statusline.js"></script>
     
     <!-- 主入口 -->
     <script src="app.js"></script>

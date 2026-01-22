@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::io::Write;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -191,133 +192,99 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
     let source_path = Path::new(&config_path).join(format!("settings-{}.json", channel_name));
     let target_path = Path::new(&config_path).join("settings.json");
     
-    match fs::copy(&source_path, &target_path) {
-        Ok(_) => ApiResponse::success(),
-        Err(e) => ApiResponse::error(e.to_string()),
-    }
-}
-
-#[tauri::command]
-async fn launch_claude(terminal: String, terminal_dir: String) -> ApiResponse<()> {
-    use std::process::Command;
-
-    #[cfg(target_os = "windows")]
-    use std::os::windows::process::CommandExt;
-
-    if terminal == "wt" {
-        if !check_windows_terminal_installed() {
-            return ApiResponse::error(
-                "Windows Terminal 未安装。请从 Microsoft Store 安装 Windows Terminal，或选择其他终端。".to_string()
-            );
-        }
-    }
-
-    let result = if cfg!(target_os = "windows") {
-        #[cfg(target_os = "windows")]
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-        match terminal.as_str() {
-            "wt" => {
-                Command::new("wt")
-                    .arg("-d")
-                    .arg(&terminal_dir)
-                    .arg("pwsh")
-                    .arg("-NoExit")
-                    .arg("-Command")
-                    .arg("claude")
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn()
-            },
-            "powershell" | "pwsh" => {
-                let escaped_dir = terminal_dir.replace("'", "''");
-                Command::new("cmd")
-                    .args(&[
-                        "/C",
-                        "start",
-                        "\"\"",
-                        &terminal,
-                        "-NoExit",
-                        "-Command",
-                        &format!("Set-Location '{}'; claude", escaped_dir)
-                    ])
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn()
-            },
-            "cmd" => {
-                Command::new("cmd")
-                    .args(&[
-                        "/C",
-                        "start",
-                        "\"\"",
-                        "cmd",
-                        "/k",
-                        &format!("cd /d \"{}\" && claude", terminal_dir)
-                    ])
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn()
-            },
-            _ => {
-                let escaped_dir = terminal_dir.replace("'", "''");
-                Command::new("cmd")
-                    .args(&[
-                        "/C",
-                        "start",
-                        "\"\"",
-                        &terminal,
-                        "-NoExit",
-                        "-Command",
-                        &format!("Set-Location '{}'; claude", escaped_dir)
-                    ])
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn()
+    // 读取源渠道配置
+    let source_content = match fs::read_to_string(&source_path) {
+        Ok(content) => content,
+        Err(e) => return ApiResponse::error(e.to_string()),
+    };
+    
+    let mut source_json: serde_json::Value = match serde_json::from_str(&source_content) {
+        Ok(v) => v,
+        Err(e) => return ApiResponse::error(e.to_string()),
+    };
+    
+    // 如果目标文件存在，读取并保留 statusLine 配置
+    if target_path.exists() {
+        if let Ok(target_content) = fs::read_to_string(&target_path) {
+            if let Ok(target_json) = serde_json::from_str::<serde_json::Value>(&target_content) {
+                if let Some(status_line) = target_json.get("statusLine") {
+                    if let Some(obj) = source_json.as_object_mut() {
+                        obj.insert("statusLine".to_string(), status_line.clone());
+                    }
+                }
             }
         }
-    } else {
-        Command::new(&terminal)
-            .arg("-c")
-            .arg(&format!("cd '{}' && claude", terminal_dir))
-            .spawn()
+    }
+    
+    // 写入合并后的配置
+    let merged_content = match serde_json::to_string_pretty(&source_json) {
+        Ok(json) => json,
+        Err(e) => return ApiResponse::error(e.to_string()),
     };
-
-    match result {
+    
+    match fs::write(&target_path, merged_content) {
         Ok(_) => ApiResponse::success(),
         Err(e) => ApiResponse::error(e.to_string()),
     }
 }
 
-fn check_windows_terminal_installed() -> bool {
-    if cfg!(target_os = "windows") {
-        use std::process::Command;
-
-        #[cfg(target_os = "windows")]
-        use std::os::windows::process::CommandExt;
-
-        #[cfg(target_os = "windows")]
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-        if let Ok(output) = Command::new("where")
-            .arg("wt")
-            .creation_flags(CREATE_NO_WINDOW)
-            .output() {
-            return output.status.success() && !output.stdout.is_empty();
-        }
-    }
-    false
+#[tauri::command(rename_all = "camelCase")]
+async fn launch_claude(terminal_dir: String) -> ApiResponse<()> {
+    open_terminal("claude", &terminal_dir)
 }
 
-#[tauri::command]
-async fn check_terminal_available(terminal: String) -> ApiResponse<bool> {
-    let available = match terminal.as_str() {
-        "wt" => check_windows_terminal_installed(),
-        _ => true,
-    };
+#[tauri::command(rename_all = "camelCase")]
+async fn launch_droid(terminal_dir: String) -> ApiResponse<()> {
+    open_terminal("droid", &terminal_dir)
+}
 
-    ApiResponse {
-        success: true,
-        error: None,
-        channels: None,
-        config: None,
-        data: Some(available),
+// ==================== 终端启动模块 ====================
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+#[cfg(target_os = "windows")]
+fn command_exists(cmd: &str) -> bool {
+    use std::process::Command;
+    use std::os::windows::process::CommandExt;
+    Command::new("where")
+        .arg(cmd)
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn open_terminal(command: &str, dir: &str) -> ApiResponse<()> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+
+        // 检查是否安装了 Windows Terminal
+        if !command_exists("wt") {
+            return ApiResponse::error("请先安装 Windows Terminal。\n可从 Microsoft Store 搜索 \"Windows Terminal\" 安装。".to_string());
+        }
+
+        // 检查是否有 pwsh (PowerShell 7)，没有则使用 powershell
+        let shell = if command_exists("pwsh") { "pwsh" } else { "powershell" };
+
+        // 使用 Windows Terminal 启动
+        let result = Command::new("wt")
+            .args(["-d", dir, shell, "-NoExit", "-Command", command])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map(|_| ());
+
+        match result {
+            Ok(_) => ApiResponse::success(),
+            Err(e) => ApiResponse::error(format!("启动终端失败: {}", e)),
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        ApiResponse::error("仅支持 Windows".to_string())
     }
 }
 
@@ -600,76 +567,6 @@ async fn delete_droid_channel(config_path: String, name: String) -> ApiResponse<
     }
 }
 
-#[tauri::command]
-async fn launch_droid(terminal: String, terminal_dir: String) -> ApiResponse<()> {
-    use std::process::Command;
-
-    #[cfg(target_os = "windows")]
-    use std::os::windows::process::CommandExt;
-
-    if terminal == "wt" {
-        if !check_windows_terminal_installed() {
-            return ApiResponse::error(
-                "Windows Terminal 未安装。请从 Microsoft Store 安装 Windows Terminal，或选择其他终端。".to_string()
-            );
-        }
-    }
-
-    let result = if cfg!(target_os = "windows") {
-        #[cfg(target_os = "windows")]
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-        let escaped_dir = terminal_dir.replace("'", "''");
-
-        match terminal.as_str() {
-            "wt" => {
-                Command::new("wt")
-                    .arg("-d")
-                    .arg(&terminal_dir)
-                    .arg("pwsh")
-                    .arg("-NoExit")
-                    .arg("-Command")
-                    .arg("droid")
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn()
-            },
-            "powershell" | "pwsh" => {
-                Command::new(&terminal)
-                    .current_dir(&terminal_dir)
-                    .arg("-NoExit")
-                    .arg("-Command")
-                    .arg(format!("Set-Location '{}'; droid", escaped_dir))
-                    .spawn()
-            },
-            "cmd" => {
-                Command::new("cmd")
-                    .current_dir(&terminal_dir)
-                    .arg("/k")
-                    .arg("droid")
-                    .spawn()
-            },
-            _ => {
-                Command::new(&terminal)
-                    .current_dir(&terminal_dir)
-                    .arg("-NoExit")
-                    .arg("-Command")
-                    .arg(format!("Set-Location '{}'; droid", escaped_dir))
-                    .spawn()
-            }
-        }
-    } else {
-        Command::new(&terminal)
-            .arg("-c")
-            .arg(&format!("cd '{}' && droid", terminal_dir))
-            .spawn()
-    };
-
-    match result {
-        Ok(_) => ApiResponse::success(),
-        Err(e) => ApiResponse::error(e.to_string()),
-    }
-}
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -681,7 +578,6 @@ fn main() {
             delete_channel,
             switch_channel,
             launch_claude,
-            check_terminal_available,
             get_home_dir,
             window_minimize,
             window_maximize,
@@ -695,7 +591,13 @@ fn main() {
             switch_droid_channel,
             save_droid_channel,
             delete_droid_channel,
-            launch_droid
+            launch_droid,
+            // StatusLine 管理
+            get_statusline_files,
+            read_statusline_file,
+            save_statusline_file,
+            delete_statusline_file,
+            apply_statusline_to_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -769,4 +671,337 @@ async fn window_close(window: tauri::Window) -> Result<(), String> {
 #[tauri::command]
 async fn window_is_maximized(window: tauri::Window) -> Result<bool, String> {
     window.is_maximized().map_err(|e| e.to_string())
+}
+
+// ==================== StatusLine 管理 ====================
+
+#[derive(Debug, Serialize, Deserialize)]
+struct StatuslineFile {
+    name: String,
+    file_name: String,
+    path: String,
+    modified: i64,
+}
+
+#[tauri::command]
+async fn get_statusline_files() -> ApiResponse<Vec<StatuslineFile>> {
+    let home_dir = match std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        Ok(home) => home,
+        Err(_) => {
+            return ApiResponse {
+                success: true,
+                error: None,
+                channels: None,
+                config: None,
+                data: Some(vec![]),
+            };
+        }
+    };
+
+    let statusline_dir = Path::new(&home_dir).join(".claude").join("statusline");
+
+    if !statusline_dir.exists() {
+        if let Err(e) = fs::create_dir_all(&statusline_dir) {
+            return ApiResponse {
+                success: false,
+                error: Some(format!("Failed to create statusline directory: {}", e)),
+                channels: None,
+                config: None,
+                data: Some(vec![]),
+            };
+        }
+        return ApiResponse {
+            success: true,
+            error: None,
+            channels: None,
+            config: None,
+            data: Some(vec![]),
+        };
+    }
+
+    let mut files = Vec::new();
+
+    let entries = match fs::read_dir(&statusline_dir) {
+        Ok(e) => e,
+        Err(_) => {
+            return ApiResponse {
+                success: true,
+                error: None,
+                channels: None,
+                config: None,
+                data: Some(vec![]),
+            };
+        }
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("ps1") {
+            continue;
+        }
+
+        let file_name = path.file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        // 提取显示名：先尝试移除 statusline_ 前缀和 .ps1 后缀
+        // 如果不匹配，只移除 .ps1 后缀
+        let name = file_name
+            .strip_prefix("statusline_")
+            .and_then(|s| s.strip_suffix(".ps1"))
+            .or_else(|| file_name.strip_suffix(".ps1"))
+            .or_else(|| file_name.strip_prefix("statusline "))
+            .and_then(|s| s.strip_suffix(".ps1"))
+            .unwrap_or(&file_name)
+            .to_string();
+
+        let modified = entry.metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+
+        files.push(StatuslineFile {
+            name,
+            file_name,
+            path: path.to_string_lossy().to_string(),
+            modified,
+        });
+    }
+
+    files.sort_by(|a, b| b.modified.cmp(&a.modified));
+
+    ApiResponse {
+        success: true,
+        error: None,
+        channels: None,
+        config: None,
+        data: Some(files),
+    }
+}
+
+#[tauri::command]
+async fn read_statusline_file(file_name: String) -> ApiResponse<String> {
+    let home_dir = match std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        Ok(home) => home,
+        Err(_) => {
+            return ApiResponse {
+                success: false,
+                error: Some("Failed to get home directory".to_string()),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    };
+
+    let file_path = Path::new(&home_dir)
+        .join(".claude")
+        .join("statusline")
+        .join(&file_name);
+
+    if !file_path.exists() {
+        return ApiResponse {
+            success: false,
+            error: Some("File not found".to_string()),
+            channels: None,
+            config: None,
+            data: None,
+        };
+    }
+
+    match fs::read_to_string(&file_path) {
+        Ok(content) => ApiResponse {
+            success: true,
+            error: None,
+            channels: None,
+            config: None,
+            data: Some(content),
+        },
+        Err(e) => ApiResponse {
+            success: false,
+            error: Some(format!("Failed to read file: {}", e)),
+            channels: None,
+            config: None,
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+async fn save_statusline_file(file_name: String, content: String) -> ApiResponse<()> {
+    let home_dir = match std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        Ok(home) => home,
+        Err(_) => {
+            return ApiResponse {
+                success: false,
+                error: Some("Failed to get home directory".to_string()),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    };
+
+    let statusline_dir = Path::new(&home_dir).join(".claude").join("statusline");
+
+    if !statusline_dir.exists() {
+        if let Err(e) = fs::create_dir_all(&statusline_dir) {
+            return ApiResponse {
+                success: false,
+                error: Some(format!("Failed to create statusline directory: {}", e)),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    }
+
+    let file_path = statusline_dir.join(&file_name);
+
+    // 使用 UTF-8 BOM 编码写入文件
+    // UTF-8 BOM 是 0xEF, 0xBB, 0xBF
+    let mut file = match fs::File::create(&file_path) {
+        Ok(f) => f,
+        Err(e) => {
+            return ApiResponse {
+                success: false,
+                error: Some(format!("Failed to create file: {}", e)),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    };
+
+    // 写入 UTF-8 BOM
+    if let Err(e) = file.write_all(&[0xEF, 0xBB, 0xBF]) {
+        return ApiResponse {
+            success: false,
+            error: Some(format!("Failed to write BOM: {}", e)),
+            channels: None,
+            config: None,
+            data: None,
+        };
+    }
+
+    // 写入内容
+    match file.write_all(content.as_bytes()) {
+        Ok(_) => ApiResponse::success(),
+        Err(e) => ApiResponse {
+            success: false,
+            error: Some(format!("Failed to write content: {}", e)),
+            channels: None,
+            config: None,
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+async fn delete_statusline_file(file_name: String) -> ApiResponse<()> {
+    let home_dir = match std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        Ok(home) => home,
+        Err(_) => {
+            return ApiResponse {
+                success: false,
+                error: Some("Failed to get home directory".to_string()),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    };
+
+    let file_path = Path::new(&home_dir)
+        .join(".claude")
+        .join("statusline")
+        .join(&file_name);
+
+    if file_path.exists() {
+        match fs::remove_file(&file_path) {
+            Ok(_) => ApiResponse::success(),
+            Err(e) => ApiResponse {
+                success: false,
+                error: Some(format!("Failed to delete file: {}", e)),
+                channels: None,
+                config: None,
+                data: None,
+            },
+        }
+    } else {
+        ApiResponse::success()
+    }
+}
+
+#[tauri::command]
+async fn apply_statusline_to_settings(file_name: String) -> ApiResponse<()> {
+    let home_dir = match std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        Ok(home) => home,
+        Err(_) => {
+            return ApiResponse {
+                success: false,
+                error: Some("Failed to get home directory".to_string()),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    };
+
+    let claude_dir = Path::new(&home_dir).join(".claude");
+    let settings_path = claude_dir.join("settings.json");
+
+    let ps1_full_path = claude_dir.join("statusline").join(&file_name);
+    // 路径不需要双重转义，serde_json 会自动处理
+    let ps1_path_str = ps1_full_path.to_string_lossy().to_string();
+    let command = format!("powershell -NoProfile -ExecutionPolicy Bypass -File {}", ps1_path_str);
+
+    let mut settings_json: serde_json::Value = if settings_path.exists() {
+        match fs::read_to_string(&settings_path) {
+            Ok(content) => {
+                match serde_json::from_str(&content) {
+                    Ok(v) => v,
+                    Err(_) => serde_json::json!({})
+                }
+            }
+            Err(_) => serde_json::json!({})
+        }
+    } else {
+        serde_json::json!({})
+    };
+
+    if let Some(obj) = settings_json.as_object_mut() {
+        // 使用正确的对象格式
+        obj.insert("statusLine".to_string(), serde_json::json!({
+            "type": "command",
+            "command": command
+        }));
+    }
+
+    let updated_content = match serde_json::to_string_pretty(&settings_json) {
+        Ok(json) => json,
+        Err(e) => {
+            return ApiResponse {
+                success: false,
+                error: Some(format!("Failed to serialize settings: {}", e)),
+                channels: None,
+                config: None,
+                data: None,
+            };
+        }
+    };
+
+    match fs::write(&settings_path, updated_content) {
+        Ok(_) => ApiResponse::success(),
+        Err(e) => ApiResponse {
+            success: false,
+            error: Some(format!("Failed to write settings.json: {}", e)),
+            channels: None,
+            config: None,
+            data: None,
+        },
+    }
 }

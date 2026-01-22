@@ -310,13 +310,10 @@ class DroidManager {
      */
     async launchDroid(channel) {
         try {
-            const result = await api.launchDroid(state.terminal, state.terminalDir);
+            const result = await api.launchDroid(state.terminalDir);
 
             if (result.success) {
-                toast.show(i18n.t('droid.messages.channelLaunched', { 
-                    name: channel.name, 
-                    terminal: state.terminal 
-                }));
+                toast.show(i18n.t('droid.messages.channelLaunched', { name: channel.name }));
             } else {
                 ErrorHandler.showError(result.error, '启动失败');
             }

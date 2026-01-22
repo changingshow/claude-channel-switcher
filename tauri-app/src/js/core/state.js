@@ -5,7 +5,6 @@
 class AppState {
     constructor() {
         this.configPath = '';
-        this.terminal = localStorage.getItem('terminal') || 'wt';
         this.terminalDir = '';
         this.theme = localStorage.getItem('theme') || 'dark';
         this.language = localStorage.getItem('language') || 'zh-CN';
@@ -21,7 +20,7 @@ class AppState {
      */
     save(key, value) {
         this[key] = value;
-        if (['terminal', 'theme', 'language', 'configPath', 'terminalDir'].includes(key)) {
+        if (['theme', 'language', 'configPath', 'terminalDir'].includes(key)) {
             localStorage.setItem(key, value);
         }
     }

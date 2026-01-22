@@ -1,6 +1,6 @@
 /**
  * 设置管理功能模块
- * 负责应用设置的管理，包括路径、终端、主题、语言等配置
+ * 负责应用设置的管理，包括路径、主题、语言等配置
  */
 class SettingsManager {
     /**
@@ -8,7 +8,6 @@ class SettingsManager {
      */
     init() {
         this.setupPathSettings();
-        this.setupTerminalSettings();
         this.setupTerminalDirSettings();
         this.setupThemeSettings();
         this.setupLanguageSettings();
@@ -27,38 +26,6 @@ class SettingsManager {
 
         if (browseBtn) {
             browseBtn.addEventListener('click', () => this.handleBrowsePath(pathInput));
-        }
-    }
-
-    /**
-     * 设置终端配置
-     */
-    setupTerminalSettings() {
-        const terminalButtons = document.querySelectorAll('.terminal-btn');
-        DOMUtils.updateButtonGroup('.terminal-btn', 'terminal', state.terminal);
-
-        terminalButtons.forEach(btn => {
-            btn.addEventListener('click', () => this.handleTerminalChange(btn.dataset.terminal));
-        });
-
-        this.checkTerminalAvailability();
-    }
-
-    /**
-     * 检查终端可用性
-     */
-    async checkTerminalAvailability() {
-        const wtButton = document.querySelector('.terminal-btn[data-terminal="wt"]');
-        if (!wtButton) return;
-
-        try {
-            const result = await api.checkTerminalAvailable('wt');
-            if (result.success && result.data === false) {
-                wtButton.style.opacity = '0.5';
-                wtButton.title = '未安装 Windows Terminal';
-            }
-        } catch (error) {
-            console.error('检查终端可用性失败:', error);
         }
     }
 
@@ -159,17 +126,6 @@ class SettingsManager {
     }
 
     /**
-     * 处理终端变更
-     * @param {string} selectedTerminal - 选中的终端
-     */
-    handleTerminalChange(selectedTerminal) {
-        state.save('terminal', selectedTerminal);
-        DOMUtils.updateButtonGroup('.terminal-btn', 'terminal', state.terminal);
-        const terminalName = i18n.t(`settings.terminal.presets.${selectedTerminal}`);
-        toast.show(i18n.t('messages.terminalSet', { terminal: terminalName }));
-    }
-
-    /**
      * 处理主题变更
      * @param {string} selectedTheme - 选中的主题
      */
@@ -238,16 +194,6 @@ class SettingsManager {
                     browseBtn.setAttribute('aria-label', i18n.t('aria.browseFolder'));
                 }
             } else if (index === 1) {
-                if (title) title.textContent = i18n.t('settings.terminal.title');
-                if (description) description.textContent = i18n.t('settings.terminal.description');
-
-                const terminalButtons = card.querySelectorAll('.terminal-btn');
-                terminalButtons.forEach(btn => {
-                    const terminal = btn.dataset.terminal;
-                    const icon = terminal === 'powershell' ? '💻' : (terminal === 'pwsh' ? '⚡' : '📟');
-                    btn.innerHTML = `<span aria-hidden="true">${icon}</span> ${i18n.t(`settings.terminal.presets.${terminal}`)}`;
-                });
-            } else if (index === 2) {
                 if (title) title.textContent = i18n.t('settings.terminalDir.title');
                 if (description) description.textContent = i18n.t('settings.terminalDir.description');
 
@@ -256,7 +202,7 @@ class SettingsManager {
                     browseBtn.textContent = i18n.t('settings.terminalDir.browse');
                     browseBtn.setAttribute('aria-label', i18n.t('aria.browseFolder'));
                 }
-            } else if (index === 3) {
+            } else if (index === 2) {
                 if (title) title.textContent = i18n.t('settings.theme.title');
                 if (description) description.textContent = i18n.t('settings.theme.description');
 
@@ -265,7 +211,7 @@ class SettingsManager {
                     const theme = btn.dataset.theme;
                     btn.innerHTML = `<span aria-hidden="true">${theme === 'dark' ? '🌙' : '☀️'}</span> ${i18n.t(`settings.theme.${theme}`)}`;
                 });
-            } else if (index === 4) {
+            } else if (index === 3) {
                 if (title) title.textContent = i18n.t('settings.language.title');
                 if (description) description.textContent = i18n.t('settings.language.description');
 
@@ -275,7 +221,7 @@ class SettingsManager {
                     const langKey = lang === 'zh-CN' ? 'zhCN' : 'enUS';
                     btn.textContent = `${lang === 'zh-CN' ? '🌏' : '🌍'} ${i18n.t(`settings.language.${langKey}`)}`;
                 });
-            } else if (index === 5) {
+            } else if (index === 4) {
                 if (title) title.textContent = i18n.t('settings.about.title');
 
                 const aboutText = card.querySelector('.about-text');
