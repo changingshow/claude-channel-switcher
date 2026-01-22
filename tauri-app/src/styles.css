@@ -1392,15 +1392,15 @@ body.light-theme .confirm-dialog {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
-    padding: 24px;
+    padding: 16px 24px 24px;
 }
 
 .section-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -1409,12 +1409,14 @@ body.light-theme .confirm-dialog {
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
+    display: none;
 }
 
 .current-file-name {
     font-size: 14px;
-    color: var(--text-tertiary);
-    font-style: italic;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: center;
 }
 
 /* 子区域 */

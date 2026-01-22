@@ -168,11 +168,6 @@ class StatuslineManager {
             this.saveCurrentFile();
         });
 
-        // 重置当前按钮
-        document.getElementById('reset-current-btn')?.addEventListener('click', () => {
-            this.resetCurrentConfig();
-        });
-
 
         // 分隔符文本输入 - 实时更新
         document.addEventListener('input', (e) => {
@@ -423,7 +418,7 @@ class StatuslineManager {
             this.currentFileName.textContent = file.name;
         }
 
-        // 加载文件内容
+        // 加载文件内容并回显设置
         try {
             const result = await api.readStatuslineFile(file.file_name);
             if (result.success && result.data) {
@@ -441,29 +436,59 @@ class StatuslineManager {
      * 从 PS1 内容解析配置
      */
     parseConfigFromPS1(ps1Content) {
-        // 这是一个简化的解析器，从 PS1 文件中提取配置信息
-        // 实际使用默认配置，因为完全解析比较复杂
-        // 用户可以基于默认配置进行修改
-
-        // 尝试解析颜色变量
-        const colorMatch = ps1Content.match(/\$cModel\s*=\s*"\$esc\[38;5;(\d+)m"/);
-        if (colorMatch) {
-            const modelColor = parseInt(colorMatch[1]);
-            if (this.config.items[0]) {
-                this.config.items[0].color = modelColor;
+        // 重置为默认配置
+        this.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        
+        // 从 CONFIG 注释中解析
+        const configStart = ps1Content.indexOf('# CONFIG:');
+        if (configStart === -1) return;
+        
+        // 找到这一行的结束位置
+        let configEnd = ps1Content.indexOf('\n', configStart);
+        if (configEnd === -1) configEnd = ps1Content.length;
+        
+        // 提取 CONFIG JSON
+        const configLine = ps1Content.substring(configStart + 9, configEnd).trim();
+        
+        try {
+            const c = JSON.parse(configLine);
+            
+            // 回显分隔线
+            if (c.sep) {
+                this.config.separator.custom = c.sep;
+                this.config.separator.style = 'custom';
             }
-        }
-
-        // 尝试解析分隔符
-        const sepMatch = ps1Content.match(/\$sepText\s*=\s*"([^"]*)"/);
-        if (sepMatch) {
-            const sepChar = sepMatch[1];
-            for (const [key, value] of Object.entries(SEPARATOR_STYLES)) {
-                if (value === sepChar) {
-                    this.config.separator.style = key;
-                    break;
-                }
+            if (c.sepColor !== undefined) {
+                this.config.separator.color = c.sepColor;
             }
+            this.config.separator.showStart = c.sepStart === 1;
+            this.config.separator.showEnd = c.sepEnd === 1;
+            
+            // 回显项目: [type, emoji, label, showLabel, enabled, color]
+            if (c.items && Array.isArray(c.items)) {
+                const orderedItems = [];
+                c.items.forEach(arr => {
+                    const [type, emoji, label, showLabel, enabled, color] = arr;
+                    const item = this.config.items.find(i => i.type === type);
+                    if (item) {
+                        item.emoji = emoji;
+                        item.label = label;
+                        item.showLabel = showLabel === 1;
+                        item.enabled = enabled === 1;
+                        item.color = color;
+                        orderedItems.push(item);
+                    }
+                });
+                // 添加未保存的默认项
+                this.config.items.forEach(item => {
+                    if (!orderedItems.includes(item)) {
+                        orderedItems.push(item);
+                    }
+                });
+                this.config.items = orderedItems;
+            }
+        } catch (e) {
+            console.error('[Statusline] 解析失败:', e);
         }
     }
 
@@ -753,6 +778,15 @@ class StatuslineManager {
     }
 
     /**
+     * HTML 转义
+     */
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    /**
      * 创建项目元素
      */
     createItemElement(item, index) {
@@ -761,8 +795,12 @@ class StatuslineManager {
         div.dataset.index = index;
 
         const enabledClass = item.enabled ? 'enabled' : 'disabled';
-        const hexColor = this.ansiToHex(item.color);
+        // 确保 color 是数字类型
+        const colorValue = typeof item.color === 'number' ? item.color : parseInt(item.color) || 81;
+        const hexColor = this.ansiToHex(colorValue);
         const description = item.description || ITEM_TEMPLATES[item.type]?.description || '';
+        // 转义 label 防止 XSS
+        const safeLabel = this.escapeHtml(item.label || '');
 
         // 生成分类 emoji 选择器 HTML
         const emojiCategoriesHtml = this.generateEmojiCategoriesHtml();
@@ -779,7 +817,7 @@ class StatuslineManager {
                             ${emojiCategoriesHtml}
                         </div>
                     </div>
-                    <input type="text" class="item-label-input" value="${item.label}" style="color: ${hexColor}" title="点击编辑名称">
+                    <input type="text" class="item-label-input" value="${safeLabel}" style="color: ${hexColor}" title="点击编辑名称">
                 </div>
                 <div class="item-controls">
                     <label class="item-show-label-checkbox" title="显示名称">
@@ -855,9 +893,14 @@ class StatuslineManager {
         colorInput?.addEventListener('change', (e) => updateColor(e.target.value));
 
         // 切换启用状态
-        div.querySelector('.item-toggle-btn')?.addEventListener('click', () => {
+        const toggleBtn = div.querySelector('.item-toggle-btn');
+        toggleBtn?.addEventListener('click', () => {
             item.enabled = !item.enabled;
-            this.renderItems();
+            // 只更新按钮状态，不重新渲染整个列表
+            toggleBtn.classList.toggle('enabled', item.enabled);
+            toggleBtn.classList.toggle('disabled', !item.enabled);
+            toggleBtn.textContent = item.enabled ? '✓' : '○';
+            toggleBtn.title = item.enabled ? '点击禁用' : '点击启用';
             this.updatePreview();
         });
 
@@ -913,7 +956,11 @@ class StatuslineManager {
      * 渲染分隔线配置
      */
     renderSeparator() {
-        const hexColor = this.ansiToHex(this.config.separator.color);
+        // 确保 color 是数字类型
+        const colorValue = typeof this.config.separator.color === 'number' 
+            ? this.config.separator.color 
+            : parseInt(this.config.separator.color) || 252;
+        const hexColor = this.ansiToHex(colorValue);
 
         // 获取分隔符文本
         const sepText = this.config.separator.style === 'custom'
@@ -1249,6 +1296,26 @@ class StatuslineManager {
     generatePS1() {
         const lines = [];
 
+        // 只保存用户可修改的设置
+        const userConfig = {
+            // 分隔线：文本、颜色、开头、结尾
+            sep: this.config.separator.custom || '|',
+            sepColor: this.config.separator.color,
+            sepStart: this.config.separator.showStart ? 1 : 0,
+            sepEnd: this.config.separator.showEnd ? 1 : 0,
+            // 项目：图标、名称、勾选状态、禁用状态、字体颜色
+            items: this.config.items.map(item => ([
+                item.type,
+                item.emoji,
+                item.label,
+                item.showLabel ? 1 : 0,
+                item.enabled ? 1 : 0,
+                item.color
+            ]))
+        };
+        lines.push(`# CONFIG:${JSON.stringify(userConfig)}`);
+        lines.push('');
+
         // 头部 - 完全匹配参考格式
         lines.push('# ============================================================');
         lines.push('# Claude Code 自定义状态栏脚本 (Windows PowerShell)');
@@ -1553,6 +1620,19 @@ class StatuslineManager {
     }
 
     /**
+     * 更新当前编辑状态显示
+     */
+    updateCurrentFileNameDisplay() {
+        if (this.currentFileName) {
+            if (this.isNewFile || !this.currentFile) {
+                this.currentFileName.textContent = i18n.t('statusline.files.newFile');
+            } else {
+                this.currentFileName.textContent = this.currentFile.name;
+            }
+        }
+    }
+
+    /**
      * 更新页面语言
      */
     updateLanguage() {
@@ -1571,9 +1651,9 @@ class StatuslineManager {
             previewTitle.textContent = i18n.t('statusline.preview.title');
         }
 
-        const resetBtn = document.getElementById('reset-current-btn');
-        if (resetBtn) {
-            resetBtn.querySelector('span:last-child').textContent = i18n.t('statusline.actions.reset');
+        const createNewBtn = document.getElementById('create-new-btn');
+        if (createNewBtn) {
+            createNewBtn.querySelector('span:last-child').textContent = i18n.t('statusline.files.create');
         }
 
         const saveBtn = document.getElementById('save-current-btn');
@@ -1586,15 +1666,18 @@ class StatuslineManager {
             filesTitle.textContent = i18n.t('statusline.files.title');
         }
 
-        const createNewBtn = document.getElementById('create-new-btn');
-        if (createNewBtn) {
-            createNewBtn.querySelector('span:last-child').textContent = i18n.t('statusline.files.create');
+        const refreshBtn = document.getElementById('refresh-files-btn');
+        if (refreshBtn) {
+            refreshBtn.querySelector('span:last-child').textContent = i18n.t('statusline.files.refresh');
         }
 
         const terminalTitle = document.querySelector('.terminal-title');
         if (terminalTitle) {
             terminalTitle.textContent = i18n.t('statusline.preview.terminalTitle');
         }
+
+        // 更新当前编辑状态显示
+        this.updateCurrentFileNameDisplay();
 
         const labels = document.querySelectorAll('.separator-config .form-label');
         if (labels.length >= 3) {
