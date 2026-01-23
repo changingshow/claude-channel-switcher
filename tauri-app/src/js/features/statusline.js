@@ -807,9 +807,9 @@ class StatuslineManager {
         div.dataset.index = index;
 
         const enabledClass = item.enabled ? 'enabled' : 'disabled';
-        // 确保 color 是数字类型
+        // 确保 color 是数字类型，并转换为有效的十六进制颜色
         const colorValue = typeof item.color === 'number' ? item.color : parseInt(item.color) || 81;
-        const hexColor = this.ansiToHex(colorValue);
+        const hexColor = this.ansiToHex(colorValue) || '#5fd7ff';
         const description = item.description || ITEM_TEMPLATES[item.type]?.description || '';
         // 转义 label 防止 XSS
         const safeLabel = this.escapeHtml(item.label || '');
@@ -881,6 +881,11 @@ class StatuslineManager {
         // 名称编辑
         const labelInput = div.querySelector('.item-label-input');
         const showLabelInput = div.querySelector('.show-label-input');
+        
+        // 确保颜色正确应用（直接设置 style 属性，避免 inline style 被覆盖）
+        if (labelInput) {
+            labelInput.style.color = hexColor;
+        }
         
         labelInput?.addEventListener('input', (e) => {
             item.label = e.target.value;
@@ -1021,7 +1026,7 @@ class StatuslineManager {
         }
 
         const parts = [];
-        const sepColor = this.ansiToHex(this.config.separator.color);
+        const sepColor = this.ansiToHex(this.config.separator.color) || '#d0d0d0';
         // 优先使用自定义分隔符
         const separator = this.config.separator.style === 'custom'
             ? this.config.separator.custom
@@ -1033,7 +1038,7 @@ class StatuslineManager {
         }
 
         enabledItems.forEach((item, index) => {
-            const itemColor = this.ansiToHex(item.color);
+            const itemColor = this.ansiToHex(item.color) || '#5fd7ff';
             const displayText = this.getPreviewText(item);
             parts.push(`<span class="preview-item" style="color: ${itemColor}">${item.emoji} ${displayText}</span>`);
 
@@ -1563,6 +1568,12 @@ class StatuslineManager {
      * ANSI 256 色转十六进制
      */
     ansiToHex(ansiColor) {
+        // 处理 undefined 或非数字
+        if (ansiColor === undefined || ansiColor === null || isNaN(ansiColor)) {
+            return '#d0d0d0';
+        }
+        ansiColor = Number(ansiColor);
+        
         // 0-15: 标准色和高亮色
         const standardColors = [
             '#000000', '#800000', '#008000', '#808000', '#000080', '#800080', '#008080', '#c0c0c0',

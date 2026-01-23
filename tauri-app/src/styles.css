@@ -1621,7 +1621,7 @@ body.light-theme .confirm-dialog {
     transform: scale(1.15);
 }
 
-/* 名称输入框 */
+/* 名称输入框 - 颜色由 inline style 控制 */
 .item-label-input {
     flex: 1;
     min-width: 0;
