@@ -76,6 +76,17 @@ const ITEM_TEMPLATES = {
         color: 147,
         template: '$currentDir',
         description: '当前工作目录路径（自动缩写）'
+    },
+    time: {
+        id: 'time',
+        type: 'time',
+        enabled: true,
+        emoji: '🕐',
+        label: 'Time',
+        showLabel: false,
+        color: 117,
+        template: '$currentTime',
+        description: '当前时间（HH:mm 格式）'
     }
 };
 
@@ -94,7 +105,8 @@ const DEFAULT_CONFIG = {
         { ...ITEM_TEMPLATES.tokens },
         { ...ITEM_TEMPLATES.cache },
         { ...ITEM_TEMPLATES.cost },
-        { ...ITEM_TEMPLATES.dir }
+        { ...ITEM_TEMPLATES.dir },
+        { ...ITEM_TEMPLATES.time }
     ]
 };
 
@@ -1082,6 +1094,10 @@ class StatuslineManager {
             case 'dir':
                 value = mockData.currentDir;
                 break;
+            case 'time':
+                const now = new Date();
+                value = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                break;
             default:
                 value = '';
         }
@@ -1101,9 +1117,11 @@ class StatuslineManager {
         if (pathParts.length <= 3) {
             return fullPath;
         }
-        const first = `${pathParts[0]}\\${pathParts[1]}`;
-        const middle = pathParts.slice(2, -1).map(p => `${p[0]}~`).join('\\');
-        return `${first}\\${middle}\\${pathParts[pathParts.length - 1]}`;
+        const first = pathParts[0];
+        const second = pathParts[1];
+        const middle = pathParts.slice(2, -1).map(p => `${p[0]}~`);
+        const last = pathParts[pathParts.length - 1];
+        return [first, second, ...middle, last].join('\\');
     }
 
     /**
@@ -1346,9 +1364,11 @@ class StatuslineManager {
         lines.push('$fullPath = if ($data.cwd) { $data.cwd } else { (Get-Location).Path }');
         lines.push('$pathParts = $fullPath -split \'\\\\\'');
         lines.push('$currentDir = if ($pathParts.Length -le 3) { $fullPath } else {');
-        lines.push('    $first = "$($pathParts[0])\\$($pathParts[1])"');
-        lines.push('    $middle = ($pathParts[2..($pathParts.Length-2)] | ForEach-Object { "$($_[0])~" }) -join \'\\\\\'');
-        lines.push('    "$first\\\\$middle\\\\$($pathParts[-1])"');
+        lines.push('    $first = $pathParts[0]');
+        lines.push('    $second = $pathParts[1]');
+        lines.push('    $middle = $pathParts[2..($pathParts.Length-2)] | ForEach-Object { "$($_[0])~" }');
+        lines.push('    $last = $pathParts[-1]');
+        lines.push('    (@($first, $second) + $middle + $last) -join \'\\\'');
         lines.push('}');
         lines.push('');
 
@@ -1366,6 +1386,10 @@ class StatuslineManager {
         lines.push('# 格式化数字 (1000+ 显示为 k)');
         lines.push('function K($n) { if ($n -ge 1000) { "$([math]::Round($n/1000.0,1))k" } else { "$n" } }');
         lines.push('$usedK = K ([math]::Round($maxTk * $pct / 100))');
+        lines.push('');
+
+        lines.push('# 当前时间 (HH:mm 格式)');
+        lines.push('$currentTime = (Get-Date).ToString("HH:mm")');
         lines.push('');
 
         // 颜色定义
@@ -1409,6 +1433,7 @@ class StatuslineManager {
             222: { var: '$cCost', comment: '# 金色 - 费用', align: '  ' },
             183: { var: '$cCache', comment: '# 淡紫 - 缓存', align: ' ' },
             147: { var: '$cDir', comment: '# 紫色 - 目录', align: '   ' },
+            117: { var: '$cTime', comment: '# 青绿 - 时间', align: '  ' },
             114: { var: '$cGreen', comment: '# 绿色', align: '' },
             210: { var: '$cRed', comment: '# 红色', align: '' },
             221: { var: '$cYellow', comment: '# 黄色', align: '' },
@@ -1457,7 +1482,8 @@ class StatuslineManager {
             '🧮': { var: '$iTotal', code: '0x1F9EE', comment: '# 🧮', align: '  ' },
             '🎭': { var: '$iCache', code: '0x1F3AD', comment: '# 🎭', align: '  ' },
             '💰': { var: '$iCost', code: '0x1F4B0', comment: '# 💰', align: '   ' },
-            '📁': { var: '$iDir', code: '0x1F4C1', comment: '# 📁', align: '   ' }
+            '📁': { var: '$iDir', code: '0x1F4C1', comment: '# 📁', align: '   ' },
+            '🕐': { var: '$iTime', code: '0x1F550', comment: '# 🕐', align: '   ' }
         };
 
         this.iconVarMap = {};
@@ -1520,6 +1546,15 @@ class StatuslineManager {
         }
 
         lines.push(') -join " $sep "');
+
+        // 处理开头和结尾分隔符
+        if (this.config.separator.showStart && this.config.separator.showEnd) {
+            lines.push('$output = "$sep $output $sep"');
+        } else if (this.config.separator.showStart) {
+            lines.push('$output = "$sep $output"');
+        } else if (this.config.separator.showEnd) {
+            lines.push('$output = "$output $sep"');
+        }
 
         return lines.join('\r\n');
     }
