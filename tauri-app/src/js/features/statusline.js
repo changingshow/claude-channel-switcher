@@ -127,6 +127,37 @@ class StatuslineManager {
         this.draggedItem = null;
         this.isNewFile = false;
         this.initialized = false;
+        // 存储事件监听器引用，便于清理
+        this._eventListeners = [];
+    }
+
+    /**
+     * 添加事件监听器（自动跟踪以便清理）
+     */
+    _addEventListener(target, event, handler, options) {
+        target.addEventListener(event, handler, options);
+        this._eventListeners.push({ target, event, handler, options });
+    }
+
+    /**
+     * 销毁实例，清理所有事件监听器
+     */
+    destroy() {
+        // 清理所有注册的事件监听器
+        this._eventListeners.forEach(({ target, event, handler, options }) => {
+            target.removeEventListener(event, handler, options);
+        });
+        this._eventListeners = [];
+
+        // 清理拖拽相关的事件（以防万一）
+        if (this.boundMouseMove) {
+            document.removeEventListener('mousemove', this.boundMouseMove);
+        }
+        if (this.boundMouseUp) {
+            document.removeEventListener('mouseup', this.boundMouseUp);
+        }
+
+        this.initialized = false;
     }
 
     /**
@@ -159,37 +190,45 @@ class StatuslineManager {
      */
     initEvents() {
         // 点击页面其他地方关闭下拉面板
-        document.addEventListener('click', (e) => {
+        const handleDocumentClick = (e) => {
             if (!e.target.closest('.item-emoji-picker')) {
                 this.closeAllDropdowns();
             }
-        });
+        };
+        this._addEventListener(document, 'click', handleDocumentClick);
 
         // 刷新文件列表按钮
-        document.getElementById('refresh-files-btn')?.addEventListener('click', () => {
-            this.loadFiles();
-        });
+        const refreshBtn = document.getElementById('refresh-files-btn');
+        if (refreshBtn) {
+            const handleRefresh = () => this.loadFiles();
+            this._addEventListener(refreshBtn, 'click', handleRefresh);
+        }
 
         // 创建新文件按钮
-        document.getElementById('create-new-btn')?.addEventListener('click', () => {
-            this.createNewFile();
-        });
+        const createBtn = document.getElementById('create-new-btn');
+        if (createBtn) {
+            const handleCreate = () => this.createNewFile();
+            this._addEventListener(createBtn, 'click', handleCreate);
+        }
 
         // 保存当前按钮
-        document.getElementById('save-current-btn')?.addEventListener('click', () => {
-            this.saveCurrentFile();
-        });
+        const saveBtn = document.getElementById('save-current-btn');
+        if (saveBtn) {
+            const handleSave = () => this.saveCurrentFile();
+            this._addEventListener(saveBtn, 'click', handleSave);
+        }
 
 
         // 分隔符文本输入 - 实时更新
-        document.addEventListener('input', (e) => {
+        const handleSeparatorInput = (e) => {
             if (e.target.matches('#separator-input')) {
                 const value = e.target.value || '|';
                 this.config.separator.custom = value;
                 this.config.separator.style = 'custom';
                 this.updatePreview();
             }
-        });
+        };
+        this._addEventListener(document, 'input', handleSeparatorInput);
 
         // 分隔符颜色 - 颜色选择器
         const handleColorPickerChange = (e) => {
@@ -203,8 +242,8 @@ class StatuslineManager {
                 this.updatePreview();
             }
         };
-        document.addEventListener('input', handleColorPickerChange);
-        document.addEventListener('change', handleColorPickerChange);
+        this._addEventListener(document, 'input', handleColorPickerChange);
+        this._addEventListener(document, 'change', handleColorPickerChange);
 
         // 分隔符颜色 - 十六进制输入
         const handleHexInput = (e) => {
@@ -228,11 +267,11 @@ class StatuslineManager {
                 }
             }
         };
-        document.addEventListener('input', handleHexInput);
-        document.addEventListener('blur', handleHexInput, true);
+        this._addEventListener(document, 'input', handleHexInput);
+        this._addEventListener(document, 'blur', handleHexInput, true);
 
         // 开头/结尾分隔符勾选
-        document.addEventListener('change', (e) => {
+        const handleSeparatorCheckbox = (e) => {
             if (e.target.matches('#separator-start')) {
                 this.config.separator.showStart = e.target.checked;
                 this.updatePreview();
@@ -241,7 +280,8 @@ class StatuslineManager {
                 this.config.separator.showEnd = e.target.checked;
                 this.updatePreview();
             }
-        });
+        };
+        this._addEventListener(document, 'change', handleSeparatorCheckbox);
 
         // 预览背景色 - 从 localStorage 加载
         this.loadPreviewBgColor();
@@ -253,8 +293,8 @@ class StatuslineManager {
                 this.setPreviewBgColor(hex);
             }
         };
-        document.addEventListener('input', handlePreviewBgChange);
-        document.addEventListener('change', handlePreviewBgChange);
+        this._addEventListener(document, 'input', handlePreviewBgChange);
+        this._addEventListener(document, 'change', handlePreviewBgChange);
 
         // 预览背景色 - 十六进制输入
         const handlePreviewBgHex = (e) => {
@@ -268,8 +308,8 @@ class StatuslineManager {
                 }
             }
         };
-        document.addEventListener('input', handlePreviewBgHex);
-        document.addEventListener('blur', handlePreviewBgHex, true);
+        this._addEventListener(document, 'input', handlePreviewBgHex);
+        this._addEventListener(document, 'blur', handlePreviewBgHex, true);
     }
 
     /**
@@ -354,15 +394,19 @@ class StatuslineManager {
         div.className = `file-item${this.currentFile?.file_name === file.file_name ? ' active' : ''}`;
         div.dataset.fileName = file.file_name;
 
+        // 转义文件名防止 XSS
+        const safeName = this.escapeHtml(file.name);
+        const safeFileName = this.escapeHtml(file.file_name);
+
         div.innerHTML = `
             <div class="file-icon">📄</div>
             <div class="file-info">
-                <div class="file-name">${file.name}</div>
+                <div class="file-name">${safeName}</div>
                 <div class="file-meta">${this.formatDate(file.modified)}</div>
             </div>
             <div class="file-actions">
-                <button class="btn-icon btn-apply" data-file="${file.file_name}" title="${i18n.t('statusline.files.apply')}">☑️</button>
-                <button class="btn-icon btn-delete" data-file="${file.file_name}" title="${i18n.t('statusline.files.delete')}">🗑️</button>
+                <button class="btn-icon btn-apply" data-file="${safeFileName}" title="${i18n.t('statusline.files.apply')}">☑️</button>
+                <button class="btn-icon btn-delete" data-file="${safeFileName}" title="${i18n.t('statusline.files.delete')}">🗑️</button>
             </div>
         `;
 
@@ -450,21 +494,21 @@ class StatuslineManager {
     parseConfigFromPS1(ps1Content) {
         // 重置为默认配置
         this.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
-        
+
         // 从 CONFIG 注释中解析
         const configStart = ps1Content.indexOf('# CONFIG:');
         if (configStart === -1) return;
-        
+
         // 找到这一行的结束位置
         let configEnd = ps1Content.indexOf('\n', configStart);
         if (configEnd === -1) configEnd = ps1Content.length;
-        
+
         // 提取 CONFIG JSON
         const configLine = ps1Content.substring(configStart + 9, configEnd).trim();
-        
+
         try {
             const c = JSON.parse(configLine);
-            
+
             // 回显分隔线
             if (c.sep) {
                 this.config.separator.custom = c.sep;
@@ -475,7 +519,7 @@ class StatuslineManager {
             }
             this.config.separator.showStart = c.sepStart === 1;
             this.config.separator.showEnd = c.sepEnd === 1;
-            
+
             // 回显项目: [type, emoji, label, showLabel, enabled, color]
             if (c.items && Array.isArray(c.items)) {
                 const orderedItems = [];
@@ -546,6 +590,8 @@ class StatuslineManager {
      * 显示覆盖或另存对话框
      */
     showOverwriteOrSaveAsDialog() {
+        // 转义文件名防止 XSS
+        const safeName = this.escapeHtml(this.currentFile.name);
         const modalHtml = `
             <div class="modal active" id="save-choice-modal" role="dialog">
                 <div class="modal-content" style="max-width: 400px;">
@@ -555,7 +601,7 @@ class StatuslineManager {
                     </header>
                     <div class="modal-body">
                         <p style="margin-bottom: 16px;">
-                            ${i18n.t('statusline.files.saveChoiceMessage', { name: this.currentFile.name })}
+                            ${i18n.t('statusline.files.saveChoiceMessage', { name: safeName })}
                         </p>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             <button type="button" class="btn btn-primary" id="save-overwrite-btn" style="width: 100%;">
@@ -661,7 +707,7 @@ class StatuslineManager {
             }
 
             const fileName = `statusline_${name}.ps1`;
-            
+
             // 检查是否存在同名文件
             const existingFile = this.files.find(f => f.file_name === fileName);
             if (existingFile) {
@@ -670,7 +716,7 @@ class StatuslineManager {
                 input.select();
                 return;
             }
-            
+
             await this.writeToFile(fileName);
             modal.remove();
         };
@@ -887,12 +933,12 @@ class StatuslineManager {
         // 名称编辑
         const labelInput = div.querySelector('.item-label-input');
         const showLabelInput = div.querySelector('.show-label-input');
-        
+
         // 确保颜色正确应用（直接设置 style 属性，避免 inline style 被覆盖）
         if (labelInput) {
             labelInput.style.color = hexColor;
         }
-        
+
         labelInput?.addEventListener('input', (e) => {
             item.label = e.target.value;
             this.updatePreview();
@@ -980,8 +1026,8 @@ class StatuslineManager {
      */
     renderSeparator() {
         // 确保 color 是数字类型
-        const colorValue = typeof this.config.separator.color === 'number' 
-            ? this.config.separator.color 
+        const colorValue = typeof this.config.separator.color === 'number'
+            ? this.config.separator.color
             : parseInt(this.config.separator.color) || 252;
         const hexColor = this.ansiToHex(colorValue);
 
@@ -1066,10 +1112,10 @@ class StatuslineManager {
      */
     getPreviewText(item) {
         // 获取实际的终端工作目录，如果没有则使用默认值
-        const realDir = (typeof state !== 'undefined' && state.terminalDir) 
-            ? state.terminalDir 
+        const realDir = (typeof state !== 'undefined' && state.terminalDir)
+            ? state.terminalDir
             : 'C:\\Users\\Default';
-        
+
         // 模拟数据用于预览
         const mockData = {
             model: 'Opus 4.5',
@@ -1243,54 +1289,62 @@ class StatuslineManager {
     onDragEnd(e) {
         if (!this.draggedElement) return;
 
-        // 取消未执行的动画帧
-        if (this.rafId) {
-            cancelAnimationFrame(this.rafId);
-            this.rafId = null;
-        }
-
-        // 移除事件监听
-        document.removeEventListener('mousemove', this.boundMouseMove);
-        document.removeEventListener('mouseup', this.boundMouseUp);
-
-        // 计算目标索引
-        const allChildren = Array.from(this.itemsList.children);
-        const placeholderIndex = allChildren.indexOf(this.placeholder);
-        let targetIndex = 0;
-        for (let i = 0; i < placeholderIndex; i++) {
-            if (allChildren[i].classList.contains('statusline-item') && !allChildren[i].classList.contains('dragging')) {
-                targetIndex++;
+        try {
+            // 取消未执行的动画帧
+            if (this.rafId) {
+                cancelAnimationFrame(this.rafId);
+                this.rafId = null;
             }
+
+            // 计算目标索引
+            const allChildren = Array.from(this.itemsList.children);
+            const placeholderIndex = allChildren.indexOf(this.placeholder);
+            let targetIndex = 0;
+            for (let i = 0; i < placeholderIndex; i++) {
+                if (allChildren[i].classList.contains('statusline-item') && !allChildren[i].classList.contains('dragging')) {
+                    targetIndex++;
+                }
+            }
+
+            const fromIndex = this.draggedItem;
+
+            // 恢复元素样式
+            this.draggedElement.style.position = '';
+            this.draggedElement.style.width = '';
+            this.draggedElement.style.left = '';
+            this.draggedElement.style.top = '';
+            this.draggedElement.style.zIndex = '';
+            this.draggedElement.style.transform = '';
+            this.draggedElement.style.pointerEvents = '';
+            this.draggedElement.classList.remove('dragging');
+
+            // 移除占位符
+            if (this.placeholder && this.placeholder.parentNode) {
+                this.placeholder.parentNode.removeChild(this.placeholder);
+            }
+
+            // 执行移动
+            if (fromIndex !== targetIndex) {
+                this.moveItem(fromIndex, targetIndex);
+            } else {
+                this.renderItems();
+            }
+        } finally {
+            // 确保事件监听器始终被移除（即使发生异常）
+            if (this.boundMouseMove) {
+                document.removeEventListener('mousemove', this.boundMouseMove);
+            }
+            if (this.boundMouseUp) {
+                document.removeEventListener('mouseup', this.boundMouseUp);
+            }
+
+            // 清理状态
+            this.draggedItem = null;
+            this.draggedElement = null;
+            this.placeholder = null;
+            this.boundMouseMove = null;
+            this.boundMouseUp = null;
         }
-
-        const fromIndex = this.draggedItem;
-
-        // 恢复元素样式
-        this.draggedElement.style.position = '';
-        this.draggedElement.style.width = '';
-        this.draggedElement.style.left = '';
-        this.draggedElement.style.top = '';
-        this.draggedElement.style.zIndex = '';
-        this.draggedElement.style.transform = '';
-        this.draggedElement.style.pointerEvents = '';
-        this.draggedElement.classList.remove('dragging');
-
-        // 移除占位符
-        if (this.placeholder && this.placeholder.parentNode) {
-            this.placeholder.parentNode.removeChild(this.placeholder);
-        }
-
-        // 执行移动
-        if (fromIndex !== targetIndex) {
-            this.moveItem(fromIndex, targetIndex);
-        } else {
-            this.renderItems();
-        }
-
-        // 清理状态
-        this.draggedItem = null;
-        this.draggedElement = null;
-        this.placeholder = null;
     }
 
     /**
@@ -1549,8 +1603,8 @@ class StatuslineManager {
                 iconVar = this.iconVarMap[item.emoji] || '"?"';
 
                 // 根据 showLabel 决定是否包含项目名称
-                const content = item.showLabel 
-                    ? `${item.label}:${item.template}` 
+                const content = item.showLabel
+                    ? `${item.label}:${item.template}`
                     : item.template;
                 lines.push(`    "${colorVar}${iconVar} ${content}$reset"`);
             });
@@ -1579,7 +1633,7 @@ class StatuslineManager {
             return '#d0d0d0';
         }
         ansiColor = Number(ansiColor);
-        
+
         // 0-15: 标准色和高亮色
         const standardColors = [
             '#000000', '#800000', '#008000', '#808000', '#000080', '#800080', '#008080', '#c0c0c0',
@@ -1704,13 +1758,15 @@ class StatuslineManager {
         }
 
         const createNewBtn = document.getElementById('create-new-btn');
-        if (createNewBtn) {
-            createNewBtn.querySelector('span:last-child').textContent = i18n.t('statusline.files.create');
+        const createNewBtnText = createNewBtn?.querySelector('span:last-child');
+        if (createNewBtnText) {
+            createNewBtnText.textContent = i18n.t('statusline.files.create');
         }
 
         const saveBtn = document.getElementById('save-current-btn');
-        if (saveBtn) {
-            saveBtn.querySelector('span:last-child').textContent = i18n.t('statusline.actions.save');
+        const saveBtnText = saveBtn?.querySelector('span:last-child');
+        if (saveBtnText) {
+            saveBtnText.textContent = i18n.t('statusline.actions.save');
         }
 
         const filesTitle = document.querySelector('.files-header h3');
@@ -1719,8 +1775,9 @@ class StatuslineManager {
         }
 
         const refreshBtn = document.getElementById('refresh-files-btn');
-        if (refreshBtn) {
-            refreshBtn.querySelector('span:last-child').textContent = i18n.t('statusline.files.refresh');
+        const refreshBtnText = refreshBtn?.querySelector('span:last-child');
+        if (refreshBtnText) {
+            refreshBtnText.textContent = i18n.t('statusline.files.refresh');
         }
 
         const terminalTitle = document.querySelector('.terminal-title');
