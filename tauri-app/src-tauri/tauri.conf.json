@@ -39,7 +39,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' tauri: asset: http://asset.localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline"
+      "csp": "default-src 'self' tauri: asset: http://asset.localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
     }
   },
   "plugins": {

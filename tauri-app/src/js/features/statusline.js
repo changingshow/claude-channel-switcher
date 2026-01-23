@@ -551,7 +551,7 @@ class StatuslineManager {
                 <div class="modal-content" style="max-width: 400px;">
                     <header class="modal-header">
                         <h3 class="modal-title">${i18n.t('statusline.files.saveDialogTitle')}</h3>
-                        <button class="modal-close" onclick="document.getElementById('save-choice-modal').remove()">✕</button>
+                        <button class="modal-close" id="save-choice-modal-close">✕</button>
                     </header>
                     <div class="modal-body">
                         <p style="margin-bottom: 16px;">
@@ -576,9 +576,12 @@ class StatuslineManager {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
         const modal = document.getElementById('save-choice-modal');
+        const closeBtn = modal.querySelector('#save-choice-modal-close');
         const overwriteBtn = modal.querySelector('#save-overwrite-btn');
         const saveAsBtn = modal.querySelector('#save-as-btn');
         const cancelBtn = modal.querySelector('#save-choice-cancel');
+
+        closeBtn?.addEventListener('click', () => modal.remove());
 
         // 覆盖保存
         overwriteBtn?.addEventListener('click', async () => {
@@ -614,7 +617,7 @@ class StatuslineManager {
                 <div class="modal-content" style="max-width: 400px;">
                     <header class="modal-header">
                         <h3 class="modal-title">${i18n.t('statusline.files.saveDialogTitle')}</h3>
-                        <button class="modal-close" onclick="document.getElementById('save-name-modal').remove()">✕</button>
+                        <button class="modal-close" id="save-name-modal-close">✕</button>
                     </header>
                     <form id="save-name-form" class="modal-body">
                         <div class="form-group">
@@ -636,10 +639,13 @@ class StatuslineManager {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
         const modal = document.getElementById('save-name-modal');
+        const closeBtn = modal.querySelector('#save-name-modal-close');
         const form = modal.querySelector('#save-name-form');
         const input = form.querySelector('input[name="file_name"]');
         const cancelBtn = modal.querySelector('#save-name-cancel');
         const confirmBtn = modal.querySelector('#save-name-confirm');
+
+        closeBtn?.addEventListener('click', () => modal.remove());
 
         const doSave = async () => {
             const name = input.value.trim();
