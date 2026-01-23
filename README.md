@@ -28,11 +28,19 @@ npm run build
 - [Rust](https://www.rust-lang.org/tools/install) 1.70+
 - [Node.js](https://nodejs.org/) 18+
 
-## 🆕 最新更新 (v3.1.0)
+## 🆕 最新更新 (v3.2.0)
 
 > **注意**：本次更新仅针对 **Tauri 版本**，建议使用 Tauri 版本，打包后的 exe 仅约 5MB，远小于 Electron 版本的 150MB。
 
-### 新增功能：余额查询
+### 新增功能：StatusLine 自定义配置
+- 可视化配置 Claude 终端状态栏样式
+- 支持自定义显示项目：用户名、日期、时间、Git 分支、当前目录等
+- 灵活的分隔符配置：竖线、箭头、短横线、空格等
+- 实时预览终端显示效果
+- 一键应用到 Claude 的 `settings.json` 配置
+- 样式文件存储在 `~/.claude/statusline/` 目录，支持多样式管理
+
+### 历史更新：余额查询 (v3.1.0)
 - 支持为每个渠道配置余额查询 API
 - 在渠道卡片右上角显示余额按钮，点击即可查询
 - 灵活配置：
