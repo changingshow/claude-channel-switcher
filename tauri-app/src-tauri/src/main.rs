@@ -198,26 +198,52 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
         Err(e) => return ApiResponse::error(e.to_string()),
     };
     
-    let mut source_json: serde_json::Value = match serde_json::from_str(&source_content) {
+    let source_json: serde_json::Value = match serde_json::from_str(&source_content) {
         Ok(v) => v,
         Err(e) => return ApiResponse::error(e.to_string()),
     };
     
-    // 如果目标文件存在，读取并保留 statusLine 配置
-    if target_path.exists() {
-        if let Ok(target_content) = fs::read_to_string(&target_path) {
-            if let Ok(target_json) = serde_json::from_str::<serde_json::Value>(&target_content) {
-                if let Some(status_line) = target_json.get("statusLine") {
-                    if let Some(obj) = source_json.as_object_mut() {
-                        obj.insert("statusLine".to_string(), status_line.clone());
-                    }
-                }
-            }
+    // 读取目标 settings.json（如果存在）
+    let mut target_json: serde_json::Value = if target_path.exists() {
+        match fs::read_to_string(&target_path) {
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(v) => v,
+                Err(_) => serde_json::json!({}),
+            },
+            Err(_) => serde_json::json!({}),
+        }
+    } else {
+        serde_json::json!({})
+    };
+    
+    // 只覆写 env 和 balanceApi 字段，保留 settings.json 中的其他配置
+    if let Some(target_obj) = target_json.as_object_mut() {
+        // 覆写 env
+        if let Some(env) = source_json.get("env") {
+            target_obj.insert("env".to_string(), env.clone());
+        }
+        
+        // 覆写 balanceApi（如果源文件有则覆写，没有则移除）
+        if let Some(balance_api) = source_json.get("balanceApi") {
+            target_obj.insert("balanceApi".to_string(), balance_api.clone());
+        } else {
+            target_obj.remove("balanceApi");
+        }
+        
+        // 确保必需字段存在（防止 get_active_channel 解析失败）
+        if !target_obj.contains_key("permissions") {
+            target_obj.insert("permissions".to_string(), serde_json::json!({
+                "allow": [],
+                "deny": []
+            }));
+        }
+        if !target_obj.contains_key("alwaysThinkingEnabled") {
+            target_obj.insert("alwaysThinkingEnabled".to_string(), serde_json::json!(true));
         }
     }
     
     // 写入合并后的配置
-    let merged_content = match serde_json::to_string_pretty(&source_json) {
+    let merged_content = match serde_json::to_string_pretty(&target_json) {
         Ok(json) => json,
         Err(e) => return ApiResponse::error(e.to_string()),
     };
@@ -751,8 +777,6 @@ async fn get_statusline_files() -> ApiResponse<Vec<StatuslineFile>> {
             .strip_prefix("statusline_")
             .and_then(|s| s.strip_suffix(".ps1"))
             .or_else(|| file_name.strip_suffix(".ps1"))
-            .or_else(|| file_name.strip_prefix("statusline "))
-            .and_then(|s| s.strip_suffix(".ps1"))
             .unwrap_or(&file_name)
             .to_string();
 

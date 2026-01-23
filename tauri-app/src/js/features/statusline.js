@@ -1201,11 +1201,8 @@ class StatuslineManager {
 
         // 记录初始位置
         const rect = element.getBoundingClientRect();
-        this.dragStartX = rect.left;
         this.dragStartY = rect.top;
-        this.dragOffsetX = e.clientX - rect.left;
         this.dragOffsetY = e.clientY - rect.top;
-        this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
 
         // 创建拖拽占位符
@@ -1243,6 +1240,7 @@ class StatuslineManager {
         this.lastMouseY = e.clientY;
 
         // 直接更新位置，不使用节流
+        // 计算相对于初始位置的偏移量
         const y = e.clientY - this.dragOffsetY - this.dragStartY;
         this.draggedElement.style.transform = `translateY(${y}px)`;
         this.updatePlaceholderPosition();
@@ -1290,12 +1288,6 @@ class StatuslineManager {
         if (!this.draggedElement) return;
 
         try {
-            // 取消未执行的动画帧
-            if (this.rafId) {
-                cancelAnimationFrame(this.rafId);
-                this.rafId = null;
-            }
-
             // 计算目标索引
             const allChildren = Array.from(this.itemsList.children);
             const placeholderIndex = allChildren.indexOf(this.placeholder);
@@ -1573,17 +1565,25 @@ class StatuslineManager {
     generateSeparatorAndOutput() {
         const lines = [];
 
-        // 组装输出注释 - 完全匹配参考格式
-        lines.push('# 组装输出');
+        // 智能换行逻辑
+        lines.push('# ============================================================');
+        lines.push('# 智能换行逻辑');
+        lines.push('# ============================================================');
+        lines.push('');
+        lines.push('# 获取终端宽度');
+        lines.push('$termWidth = $Host.UI.RawUI.WindowSize.Width');
+        lines.push('if (-not $termWidth -or $termWidth -lt 40) { $termWidth = 120 }');
+        lines.push('');
 
-        // 分隔符定义 - 完全匹配参考格式
+        // 分隔符定义
         const sepChar = SEPARATOR_STYLES[this.config.separator.style] || this.config.separator.custom;
         const sepColorVar = this.colorVarMap[this.config.separator.color] || '$cSep';
         lines.push(`$sep = "${sepColorVar}${sepChar}$reset"`);
-
-        // 组装输出部分
         lines.push('');
-        lines.push('$output = @(');
+
+        // 定义所有项目数组
+        lines.push('# 定义所有项目');
+        lines.push('$items = @(');
 
         const enabledItems = this.config.items.filter(item => item.enabled);
 
@@ -1603,23 +1603,75 @@ class StatuslineManager {
                 iconVar = this.iconVarMap[item.emoji] || '"?"';
 
                 // 根据 showLabel 决定是否包含项目名称
+                // 注意：在 PowerShell 双引号中，冒号后紧跟 $ 可能导致解析问题
+                // 使用 $() 子表达式确保变量正确展开
                 const content = item.showLabel
-                    ? `${item.label}:${item.template}`
+                    ? `${item.label}:$(${item.template})`
                     : item.template;
                 lines.push(`    "${colorVar}${iconVar} ${content}$reset"`);
             });
         }
 
-        lines.push(') -join " $sep "');
+        lines.push(')');
+        lines.push('');
 
-        // 处理开头和结尾分隔符
-        if (this.config.separator.showStart && this.config.separator.showEnd) {
-            lines.push('$output = "$sep $output $sep"');
-        } else if (this.config.separator.showStart) {
-            lines.push('$output = "$sep $output"');
-        } else if (this.config.separator.showEnd) {
-            lines.push('$output = "$output $sep"');
+        // 添加计算显示宽度函数
+        lines.push('# 计算显示宽度（去除ANSI转义序列）');
+        lines.push('function Get-DisplayWidth($str) {');
+        lines.push('    $clean = $str -replace "$esc\\[[0-9;]*m", \'\'');
+        lines.push('    # Emoji占2个字符宽度');
+        lines.push('    $emojiCount = ([regex]::Matches($clean, \'[\\uD800-\\uDBFF][\\uDC00-\\uDFFF]|[\\u2600-\\u26FF\\u2700-\\u27BF]\')).Count');
+        lines.push('    return $clean.Length + $emojiCount');
+        lines.push('}');
+        lines.push('');
+
+        lines.push('$sepLen = 3  # " | " 的显示宽度');
+        lines.push('');
+
+        // 智能换行组装
+        lines.push('# 智能换行组装');
+
+        // 根据开头分隔符设置初始化
+        if (this.config.separator.showStart) {
+            lines.push('$currentLine = "$sep "');
+            lines.push('$currentWidth = 2');
+        } else {
+            lines.push('$currentLine = ""');
+            lines.push('$currentWidth = 0');
         }
+
+        lines.push('$lines = @()');
+        lines.push('');
+        lines.push('foreach ($item in $items) {');
+        lines.push('    $itemWidth = Get-DisplayWidth $item');
+        lines.push('    $needed = $itemWidth + $sepLen');
+        lines.push('    ');
+        lines.push('    if (($currentWidth + $needed) -gt $termWidth -and $currentWidth -gt 2) {');
+        lines.push('        # 当前行放不下这个项目，换行');
+        lines.push('        $lines += $currentLine.TrimEnd()');
+        lines.push('        $currentLine = "   $item $sep "  # 新行缩进');
+        lines.push('        $currentWidth = 3 + $itemWidth + $sepLen');
+        lines.push('    } else {');
+        lines.push('        $currentLine += "$item $sep "');
+        lines.push('        $currentWidth += $needed');
+        lines.push('    }');
+        lines.push('}');
+        lines.push('');
+
+        // 处理结尾 - 移除最后一个 " $sep "
+        // 注意：不能用 TrimEnd(ToCharArray())，因为 $sep 包含 ANSI 转义序列中的数字字符
+        // 会错误地移除时间等内容末尾的数字
+        lines.push('# 移除末尾的分隔符');
+        lines.push('$sepPattern = " " + $sep + " "');
+        lines.push('if ($currentLine.EndsWith($sepPattern)) {');
+        lines.push('    $currentLine = $currentLine.Substring(0, $currentLine.Length - $sepPattern.Length)');
+        lines.push('}');
+        if (this.config.separator.showEnd) {
+            lines.push('$currentLine = $currentLine + " $sep"');
+        }
+        lines.push('$lines += $currentLine');
+        lines.push('');
+        lines.push('$output = $lines -join "`n"');
 
         return lines.join('\r\n');
     }
