@@ -190,8 +190,12 @@ const translations = {
             },
             about: {
                 title: '关于',
-                text: 'Claude 渠道切换器 v3.0.0\n\n基于 Tauri 开发\n采用 Rust + Web 技术\n更轻量、更安全、更快速',
-                githubLink: '🔗 GitHub 主页'
+                appName: 'Claude 渠道切换器',
+                description: '更轻量、更安全、更快速的 Claude API 渠道管理工具',
+                techStack: '基于 Tauri 框架，采用 Rust + Web 技术构建',
+                feedback: '反馈建议',
+                copyright: '© 2025 Claude Channel Switcher',
+                githubLink: 'GitHub'
             }
         },
         messages: {
@@ -435,8 +439,12 @@ const translations = {
             },
             about: {
                 title: 'About',
-                text: 'Claude Channel Switcher v3.0.0\n\nBuilt with Tauri\nRust + Web Technologies\nLighter, Safer, Faster',
-                githubLink: '🔗 GitHub Homepage'
+                appName: 'Claude Channel Switcher',
+                description: 'Lighter, Safer, Faster Claude API Channel Manager',
+                techStack: 'Built with Tauri framework, using Rust + Web technologies',
+                feedback: 'Feedback',
+                copyright: '© 2025 Claude Channel Switcher',
+                githubLink: 'GitHub'
             }
         },
         messages: {

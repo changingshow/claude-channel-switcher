@@ -1059,6 +1059,188 @@ body.light-theme .form-input:focus {
     font-size: 14px;
 }
 
+/* 关于卡片样式 */
+.about-card {
+    text-align: center;
+    position: relative;
+    background: linear-gradient(135deg, var(--card-bg) 0%, var(--bg-tertiary) 100%);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.about-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3), rgba(16, 185, 129, 0.3));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.about-card .setting-title {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.about-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.about-logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    filter: drop-shadow(0 4px 12px rgba(10, 132, 255, 0.3));
+}
+
+.about-app-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.about-app-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.about-version {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    padding: 2px 10px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.about-tech-stack {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.about-tech-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 20px;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-standard);
+}
+
+.about-tech-item:hover {
+    background: var(--bg-elevated);
+    transform: translateY(-2px);
+}
+
+.tech-icon {
+    font-size: 24px;
+}
+
+.tech-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.about-description {
+    font-size: 15px;
+    background: linear-gradient(90deg, #f472b6, #a78bfa, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.about-tech-text {
+    font-size: 13px;
+    color: #f97316;
+    margin-bottom: 24px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(239, 68, 68, 0.1));
+    border-radius: 20px;
+    display: inline-block;
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    font-weight: 500;
+}
+
+.about-links {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.about-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: var(--border-radius-md);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all var(--transition-standard);
+}
+
+.about-link-btn:hover {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    border-color: transparent;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.35);
+}
+
+.link-icon {
+    font-size: 16px;
+}
+
+.github-icon {
+    flex-shrink: 0;
+}
+
+.about-footer {
+    padding-top: 16px;
+    border-top: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.about-copyright {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: linear-gradient(90deg, var(--text-muted), rgba(139, 92, 246, 0.6));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .github-link {
     display: inline-flex;
     align-items: center;
@@ -1930,10 +2112,14 @@ body.light-theme .confirm-dialog {
 }
 
 @keyframes blink {
-    0%, 50% {
+
+    0%,
+    50% {
         opacity: 1;
     }
-    51%, 100% {
+
+    51%,
+    100% {
         opacity: 0;
     }
 }

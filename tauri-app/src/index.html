@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <title></title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <!-- 自定义标题栏 -->
     <div class="titlebar" data-tauri-drag-region>
@@ -126,9 +128,12 @@
                             <div class="separator-section">
                                 <h4></h4>
                                 <div class="separator-config-row">
-                                    <input type="text" id="separator-input" class="separator-text-input" value="|" maxlength="3" title="分隔符">
-                                    <input type="color" id="separator-color-picker" value="#d0d0d0" class="color-picker-input">
-                                    <input type="text" id="separator-color-hex" class="color-hex-input" value="#d0d0d0" maxlength="7">
+                                    <input type="text" id="separator-input" class="separator-text-input" value="|"
+                                        maxlength="3" title="分隔符">
+                                    <input type="color" id="separator-color-picker" value="#d0d0d0"
+                                        class="color-picker-input">
+                                    <input type="text" id="separator-color-hex" class="color-hex-input" value="#d0d0d0"
+                                        maxlength="7">
                                     <label class="separator-checkbox">
                                         <input type="checkbox" id="separator-start">
                                         <span>开头</span>
@@ -145,8 +150,10 @@
                                 <div class="preview-header">
                                     <h4></h4>
                                     <div class="preview-bg-config">
-                                        <input type="color" id="preview-bg-picker" value="#1e1e1e" class="color-picker-input" title="预览背景色">
-                                        <input type="text" id="preview-bg-hex" class="color-hex-input" value="#1e1e1e" maxlength="7">
+                                        <input type="color" id="preview-bg-picker" value="#1e1e1e"
+                                            class="color-picker-input" title="预览背景色">
+                                        <input type="text" id="preview-bg-hex" class="color-hex-input" value="#1e1e1e"
+                                            maxlength="7">
                                     </div>
                                 </div>
                                 <div class="terminal-preview" id="terminal-preview">
@@ -200,7 +207,8 @@
                         <p class="setting-description"></p>
                         <div class="setting-input-group">
                             <label for="config-path-input" class="sr-only">配置文件路径</label>
-                            <input type="text" id="config-path-input" class="setting-input" readonly aria-readonly="true">
+                            <input type="text" id="config-path-input" class="setting-input" readonly
+                                aria-readonly="true">
                             <button class="btn btn-secondary" id="browse-path-btn" aria-label="浏览文件夹"></button>
                         </div>
                     </article>
@@ -210,7 +218,8 @@
                         <p class="setting-description"></p>
                         <div class="setting-input-group">
                             <label for="terminal-dir-input" class="sr-only">工作目录路径</label>
-                            <input type="text" id="terminal-dir-input" class="setting-input" readonly aria-readonly="true">
+                            <input type="text" id="terminal-dir-input" class="setting-input" readonly
+                                aria-readonly="true">
                             <button class="btn btn-secondary" id="browse-terminal-dir-btn" aria-label="浏览文件夹"></button>
                         </div>
                     </article>
@@ -237,10 +246,32 @@
                         </div>
                     </article>
 
-                    <article class="setting-card">
-                        <h3 class="setting-title"></h3>
-                        <p class="about-text">
-                        </p>
+                    <article class="setting-card about-card">
+                        <h3 class="setting-title about-title"></h3>
+
+                        <p class="about-description"></p>
+                        <p class="about-tech-text"></p>
+
+                        <div class="about-links">
+                            <a href="https://github.com/changingshow/claude-channel-switcher" target="_blank"
+                                rel="noopener noreferrer" class="about-link-btn">
+                                <svg class="github-icon" viewBox="0 0 16 16" width="18" height="18" fill="currentColor">
+                                    <path
+                                        d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z">
+                                    </path>
+                                </svg>
+                                <span class="link-text">GitHub</span>
+                            </a>
+                            <a href="https://github.com/changingshow/claude-channel-switcher/issues" target="_blank"
+                                rel="noopener noreferrer" class="about-link-btn">
+                                <span class="link-icon">💬</span>
+                                <span class="link-text"></span>
+                            </a>
+                        </div>
+
+                        <div class="about-footer">
+                            <span class="about-copyright"></span>
+                        </div>
                     </article>
                 </div>
             </section>
@@ -260,7 +291,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="channel-token-input"></label>
-                    <input type="text" id="channel-token-input" class="form-input" placeholder="" required autocomplete="off">
+                    <input type="text" id="channel-token-input" class="form-input" placeholder="" required
+                        autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="channel-url-input"></label>
@@ -268,14 +300,16 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="channel-model-input">自定义模型名称（可选）</label>
-                    <input type="text" id="channel-model-input" class="form-input" placeholder="例如：claude-sonnet-4-5-20250929">
+                    <input type="text" id="channel-model-input" class="form-input"
+                        placeholder="例如：claude-sonnet-4-5-20250929">
                     <small style="color: #999; font-size: 11px; margin-top: 4px; display: block; opacity: 0.7;">
                         可在输入框内使用 /model 命令切换至此模型
                     </small>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="channel-balance-url-input">余额查询地址（可选）</label>
-                    <input type="text" id="channel-balance-url-input" class="form-input" placeholder="https://api.xxx.com/balance?key={key}">
+                    <input type="text" id="channel-balance-url-input" class="form-input"
+                        placeholder="https://api.xxx.com/balance?key={key}">
                     <small style="color: #999; font-size: 11px; margin-top: 4px; display: block; opacity: 0.7;">
                         使用 {key} 作为 API-Token 占位符
                     </small>
@@ -295,8 +329,10 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="channel-balance-field-input" id="balance-field-label">余额字段（可选）</label>
-                    <input type="text" id="channel-balance-field-input" class="form-input" placeholder="例如：balance 或 data.balance">
+                    <label class="form-label" for="channel-balance-field-input"
+                        id="balance-field-label">余额字段（可选）</label>
+                    <input type="text" id="channel-balance-field-input" class="form-input"
+                        placeholder="例如：balance 或 data.balance">
                     <small style="color: #999; font-size: 11px; margin-top: 4px; display: block; opacity: 0.7;">
                         指定从响应 JSON 中提取的字段路径
                     </small>
@@ -323,7 +359,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="droid-apikey-input"></label>
-                    <input type="text" id="droid-apikey-input" class="form-input" placeholder="" required autocomplete="off">
+                    <input type="text" id="droid-apikey-input" class="form-input" placeholder="" required
+                        autocomplete="off">
                 </div>
             </form>
             <footer class="modal-footer">
@@ -354,24 +391,24 @@
 
     <!-- 国际化模块 -->
     <script src="i18n.js"></script>
-    
+
     <!-- 工具模块 -->
     <script src="js/utils/error.js"></script>
     <script src="js/utils/debounce.js"></script>
     <script src="js/utils/dom.js"></script>
     <script src="js/utils/validation.js"></script>
-    
+
     <!-- 核心模块 -->
     <script src="js/core/api.js"></script>
     <script src="js/core/state.js"></script>
-    
+
     <!-- UI 模块 -->
     <script src="js/ui/toast.js"></script>
     <script src="js/ui/modal.js"></script>
     <script src="js/ui/confirm.js"></script>
     <script src="js/ui/navigation.js"></script>
     <script src="js/ui/titlebar.js"></script>
-    
+
     <!-- 功能模块 -->
     <script src="js/features/theme.js"></script>
     <script src="js/features/channels.js"></script>
@@ -379,8 +416,9 @@
     <script src="js/features/settings.js"></script>
     <script src="js/features/fireworks.js"></script>
     <script src="js/features/statusline.js"></script>
-    
+
     <!-- 主入口 -->
     <script src="app.js"></script>
 </body>
+
 </html>

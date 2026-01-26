@@ -145,7 +145,7 @@ class SettingsManager {
         state.save('language', selectedLanguage);
         i18n.setLanguage(state.language);
         DOMUtils.updateButtonGroup('.language-btn', 'language', state.language);
-        
+
         // 更新所有 UI 组件的语言
         if (typeof updateUILanguage === 'function') {
             updateUILanguage();
@@ -222,15 +222,18 @@ class SettingsManager {
                     btn.textContent = `${lang === 'zh-CN' ? '🌏' : '🌍'} ${i18n.t(`settings.language.${langKey}`)}`;
                 });
             } else if (index === 4) {
-                if (title) title.textContent = i18n.t('settings.about.title');
+                // 关于区域
+                const aboutTitle = card.querySelector('.about-title');
+                const aboutDescription = card.querySelector('.about-description');
+                const aboutTechText = card.querySelector('.about-tech-text');
+                const feedbackLink = card.querySelector('.about-links .about-link-btn:last-child .link-text');
+                const aboutCopyright = card.querySelector('.about-copyright');
 
-                const aboutText = card.querySelector('.about-text');
-                if (aboutText) {
-                    const githubLink = aboutText.querySelector('.github-link');
-                    const githubLinkHtml = githubLink ? githubLink.outerHTML : '';
-                    aboutText.innerHTML = i18n.t('settings.about.text').replace(/\n/g, '<br>') + '<br><br>' + 
-                        (githubLinkHtml || `<a href="https://github.com/changingshow/claude-channel-switcher" target="_blank" rel="noopener noreferrer" class="github-link"><span aria-hidden="true">🔗</span> ${i18n.t('settings.about.githubLink')}</a>`);
-                }
+                if (aboutTitle) aboutTitle.textContent = i18n.t('settings.about.title');
+                if (aboutDescription) aboutDescription.textContent = i18n.t('settings.about.description');
+                if (aboutTechText) aboutTechText.textContent = i18n.t('settings.about.techStack');
+                if (feedbackLink) feedbackLink.textContent = i18n.t('settings.about.feedback');
+                if (aboutCopyright) aboutCopyright.textContent = i18n.t('settings.about.copyright');
             }
         });
     }
