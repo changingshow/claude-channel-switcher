@@ -285,20 +285,25 @@ fn open_terminal(command: &str, dir: &str) -> ApiResponse<()> {
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
-        use std::os::windows::process::CommandExt;
 
-        // 检查是否安装了 Windows Terminal
-        if !command_exists("wt") {
-            return ApiResponse::error("请先安装 Windows Terminal。\n可从 Microsoft Store 搜索 \"Windows Terminal\" 安装。".to_string());
-        }
+        // 检查工作目录是否存在，不存在则回退到用户主目录
+        let work_dir = if Path::new(dir).exists() {
+            dir.to_string()
+        } else {
+            std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\".to_string())
+        };
 
         // 检查是否有 pwsh (PowerShell 7)，没有则使用 powershell
         let shell = if command_exists("pwsh") { "pwsh" } else { "powershell" };
 
-        // 使用 Windows Terminal 启动
-        let result = Command::new("wt")
-            .args(["-d", dir, shell, "-NoExit", "-Command", command])
-            .creation_flags(CREATE_NO_WINDOW)
+        // 优先尝试 Windows Terminal，失败则回退到直接启动 PowerShell
+        if let Some(result) = try_launch_with_wt(&work_dir, shell, command) {
+            return result;
+        }
+
+        // 回退方案：直接启动 PowerShell 窗口
+        let result = Command::new(shell)
+            .args(["-NoExit", "-Command", &format!("cd '{}'; {}", work_dir, command)])
             .spawn()
             .map(|_| ());
 
@@ -312,6 +317,29 @@ fn open_terminal(command: &str, dir: &str) -> ApiResponse<()> {
     {
         ApiResponse::error("仅支持 Windows".to_string())
     }
+}
+
+#[cfg(target_os = "windows")]
+fn try_launch_with_wt(dir: &str, shell: &str, command: &str) -> Option<ApiResponse<()>> {
+    use std::process::Command;
+    use std::os::windows::process::CommandExt;
+
+    // 使用 PowerShell Start-Process 启动 wt（Win10/Win11 兼容性最好）
+    let ps_command = format!(
+        "Start-Process -FilePath wt -ArgumentList '-d \"{}\" {} -NoExit -Command {}'",
+        dir, shell, command
+    );
+
+    if let Ok(mut child) = Command::new("powershell")
+        .args(["-NoProfile", "-Command", &ps_command])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+    {
+        let _ = child.wait();
+        return Some(ApiResponse::success());
+    }
+
+    None
 }
 
 fn read_channels(config_path: &str) -> Result<HashMap<String, ChannelConfig>, Box<dyn std::error::Error>> {
