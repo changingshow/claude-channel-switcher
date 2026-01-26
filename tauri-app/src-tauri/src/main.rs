@@ -324,19 +324,25 @@ fn try_launch_with_wt(dir: &str, shell: &str, command: &str) -> Option<ApiRespon
     use std::process::Command;
     use std::os::windows::process::CommandExt;
 
+    // 处理路径：移除末尾的反斜杠，防止与后续的引号组合成转义字符 (例如 "D:\" -> "D:")
+    let clean_dir = dir.trim_end_matches('\\');
+
     // 使用 PowerShell Start-Process 启动 wt（Win10/Win11 兼容性最好）
+    // 注意：这里需要仔细处理引号转义
     let ps_command = format!(
-        "Start-Process -FilePath wt -ArgumentList '-d \"{}\" {} -NoExit -Command {}'",
-        dir, shell, command
+        "Start-Process -FilePath wt -ArgumentList '-d \"{}\" {} -NoExit -Command {}' -Wait -PassThru",
+        clean_dir, shell, command
     );
 
-    if let Ok(mut child) = Command::new("powershell")
+    if let Ok(output) = Command::new("powershell")
         .args(["-NoProfile", "-Command", &ps_command])
         .creation_flags(CREATE_NO_WINDOW)
-        .spawn()
+        .output()
     {
-        let _ = child.wait();
-        return Some(ApiResponse::success());
+        // 检查 PowerShell 命令本身的执行状态
+        if output.status.success() {
+             return Some(ApiResponse::success());
+        }
     }
 
     None
