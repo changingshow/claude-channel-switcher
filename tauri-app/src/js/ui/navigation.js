@@ -28,6 +28,11 @@ class NavigationManager {
         const targetPage = document.getElementById(`${pageName}-page`);
         if (targetPage) {
             targetPage.classList.add('active');
+            // 重置滚动位置到顶部（滚动容器是 .main-content）
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
         }
 
         // 切换到 droid 页面时刷新渠道列表
@@ -53,7 +58,7 @@ class NavigationManager {
             // 中文：Claude 渠道切换器 -> Claude<br>渠道切换器
             logoText.innerHTML = title.replace(' ', '<br>');
         }
-        
+
         const version = document.querySelector('.version');
         if (version) {
             version.textContent = i18n.t('app.version');

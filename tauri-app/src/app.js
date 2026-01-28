@@ -31,17 +31,17 @@ async function initializeApp() {
     } catch (e) {
         console.error('Failed to get home directory:', e);
     }
-    
+
     // 初始化状态
     state.initConfigPath(homeDirectory);
 
     // 初始化 UI
     i18n.setLanguage(state.language);
     theme.applyTheme(state.theme);
-    
+
     // 设置事件监听
     setupEventListeners();
-    
+
     // 初始化各个模块
     navigation.init();
     titlebar.init();
@@ -49,10 +49,10 @@ async function initializeApp() {
     settings.init();
     droid.init();
     statusline.init();
-    
+
     // 更新 UI 语言
     updateUILanguage();
-    
+
     // 加载渠道列表
     await channels.loadChannels();
     await droid.loadChannels();
@@ -72,21 +72,34 @@ function setupEventListeners() {
     if (addBtn) {
         addBtn.addEventListener('click', () => modal.openNew());
     }
-    
+
     if (refreshBtn) {
         // 使用防抖处理刷新操作
         const debouncedRefresh = debounce(() => channels.refreshChannels(), 300);
         refreshBtn.addEventListener('click', debouncedRefresh);
     }
-    
+
+    // 定位到激活渠道按钮
+    const locateBtn = document.getElementById('locate-active-btn');
+    if (locateBtn) {
+        locateBtn.addEventListener('click', () => {
+            const activeCard = document.querySelector('.channel-card.active');
+            if (activeCard) {
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                toast.show(i18n.t('messages.noActiveChannel') || '没有激活的渠道');
+            }
+        });
+    }
+
     if (closeBtn) {
         closeBtn.addEventListener('click', () => modal.close());
     }
-    
+
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => modal.close());
     }
-    
+
     if (saveBtn) {
         saveBtn.addEventListener('click', () => channels.saveChannel());
     }
@@ -107,7 +120,7 @@ function setupEventListeners() {
  */
 function updateUILanguage() {
     document.title = i18n.t('app.title');
-    
+
     // 更新 meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {

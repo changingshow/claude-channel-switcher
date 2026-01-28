@@ -106,7 +106,7 @@ class ChannelManager {
         }
 
         const sortedChannels = Object.entries(state.channels).sort((a, b) => {
-            return (b[1].mtime || 0) - (a[1].mtime || 0);
+            return (b[1].ctime || 0) - (a[1].ctime || 0);
         });
 
         const fragment = document.createDocumentFragment();

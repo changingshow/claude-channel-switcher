@@ -17,24 +17,16 @@ struct BalanceApi {
     field: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+// 简化的渠道配置，只包含 env 和 balanceApi
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct ChannelConfig {
+    #[serde(default)]
     env: HashMap<String, String>,
-    permissions: Permissions,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    model: Option<String>,
-    #[serde(rename = "alwaysThinkingEnabled")]
-    always_thinking_enabled: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    mtime: Option<i64>,
-    #[serde(rename = "balanceApi", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "balanceApi", skip_serializing_if = "Option::is_none", default)]
     balance_api: Option<BalanceApi>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Permissions {
-    allow: Vec<String>,
-    deny: Vec<String>,
+    // 运行时从文件系统读取的修改时间，只序列化到响应，不从文件反序列化
+    #[serde(skip_deserializing, default)]
+    ctime: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -122,7 +114,7 @@ async fn save_channel(
     channel_name: String,
     token: String,
     url: String,
-    model: String,
+    _model: String,
     old_name: String,
     balance_url: String,
     balance_method: String,
@@ -148,14 +140,8 @@ async fn save_channel(
 
     let config = ChannelConfig {
         env,
-        permissions: Permissions {
-            allow: vec![],
-            deny: vec![],
-        },
-        model: if model.is_empty() { None } else { Some(model) },
-        always_thinking_enabled: true,
-        mtime: None,
         balance_api,
+        ctime: None,
     };
 
     if !old_name.is_empty() && old_name != channel_name {
@@ -218,27 +204,25 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
     
     // 只覆写 env 和 balanceApi 字段，保留 settings.json 中的其他配置
     if let Some(target_obj) = target_json.as_object_mut() {
-        // 覆写 env
-        if let Some(env) = source_json.get("env") {
-            target_obj.insert("env".to_string(), env.clone());
+        // 检查 env 是否存在且不为空
+        let env = source_json.get("env");
+        let env_is_valid = env
+            .and_then(|e| e.as_object())
+            .map(|obj| !obj.is_empty())
+            .unwrap_or(false);
+        
+        if !env_is_valid {
+            return ApiResponse::error("渠道配置异常：env 为空，无法切换".to_string());
         }
+        
+        // 覆写 env
+        target_obj.insert("env".to_string(), env.unwrap().clone());
         
         // 覆写 balanceApi（如果源文件有则覆写，没有则移除）
         if let Some(balance_api) = source_json.get("balanceApi") {
             target_obj.insert("balanceApi".to_string(), balance_api.clone());
         } else {
             target_obj.remove("balanceApi");
-        }
-        
-        // 确保必需字段存在（防止 get_active_channel 解析失败）
-        if !target_obj.contains_key("permissions") {
-            target_obj.insert("permissions".to_string(), serde_json::json!({
-                "allow": [],
-                "deny": []
-            }));
-        }
-        if !target_obj.contains_key("alwaysThinkingEnabled") {
-            target_obj.insert("alwaysThinkingEnabled".to_string(), serde_json::json!(true));
         }
     }
     
@@ -372,10 +356,15 @@ fn read_channels(config_path: &str) -> Result<HashMap<String, ChannelConfig>, Bo
             
             if let Ok(content) = fs::read_to_string(entry.path()) {
                 if let Ok(mut config) = serde_json::from_str::<ChannelConfig>(&content) {
+                    // 过滤 env 为空的无效渠道
+                    if config.env.is_empty() {
+                        continue;
+                    }
+                    // 从文件系统读取修改时间
                     if let Ok(metadata) = entry.metadata() {
                         if let Ok(modified) = metadata.modified() {
                             if let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH) {
-                                config.mtime = Some(duration.as_millis() as i64);
+                                config.ctime = Some(duration.as_millis() as i64);
                             }
                         }
                     }
