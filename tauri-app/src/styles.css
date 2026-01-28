@@ -1082,6 +1082,16 @@ body.light-theme .form-input:focus {
     pointer-events: none;
 }
 
+/* 浅色模式下关于卡片适配 */
+body.light-theme .about-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: none;
+}
+
+body.light-theme .about-card::before {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.25));
+}
+
 .about-card .setting-title {
     background: linear-gradient(135deg, #8b5cf6, #3b82f6);
     -webkit-background-clip: text;
