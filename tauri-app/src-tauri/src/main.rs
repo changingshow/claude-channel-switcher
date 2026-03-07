@@ -841,14 +841,14 @@ async fn switch_codex_channel(
     model: String,
 ) -> ApiResponse<()> {
     let dir = Path::new(&codex_config_path);
-    if !dir.exists() {
-        if let Err(e) = fs::create_dir_all(dir) {
-            return ApiResponse::error(format!("创建目录失败: {}", e));
-        }
+    let config_path = dir.join("config.toml");
+    let auth_path_check = dir.join("auth.json");
+
+    if !config_path.exists() || !auth_path_check.exists() {
+        return ApiResponse::error("未找到配置文件，请检查Codex路径配置".to_string());
     }
 
     // 写入 config.toml：保留其他行，只更新 model、base_url、model_provider
-    let config_path = dir.join("config.toml");
     let existing_content = if config_path.exists() {
         fs::read_to_string(&config_path).unwrap_or_default()
     } else {
@@ -858,10 +858,20 @@ async fn switch_codex_channel(
     let mut found_model = false;
     let mut found_base_url = false;
     let mut found_model_provider = false;
+    let mut found_section = false;
+    let mut found_name = false;
     let mut new_lines: Vec<String> = Vec::new();
 
     for line in existing_content.lines() {
         let trimmed = line.trim();
+
+        // 替换 [model_providers.xxxxx] 为 [model_providers.name]
+        if trimmed.starts_with("[model_providers.") {
+            new_lines.push(format!("[model_providers.{}]", name));
+            found_section = true;
+            continue;
+        }
+
         let key = trimmed.split('=').next().unwrap_or("").trim();
         if key == "model" {
             if !found_model {
@@ -878,6 +888,11 @@ async fn switch_codex_channel(
                 new_lines.push(format!("model_provider = \"{}\"", name));
                 found_model_provider = true;
             }
+        } else if key == "name" {
+            if !found_name {
+                new_lines.push(format!("name = \"{}\"", name));
+                found_name = true;
+            }
         } else {
             new_lines.push(line.to_string());
         }
@@ -891,6 +906,12 @@ async fn switch_codex_channel(
     }
     if !found_model_provider {
         new_lines.push(format!("model_provider = \"{}\"", name));
+    }
+    if !found_section {
+        new_lines.push(format!("[model_providers.{}]", name));
+    }
+    if !found_name {
+        new_lines.push(format!("name = \"{}\"", name));
     }
 
     if let Err(e) = fs::write(&config_path, new_lines.join("\n")) {
