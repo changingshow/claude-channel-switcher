@@ -616,6 +616,319 @@ async fn delete_droid_channel(config_path: String, name: String) -> ApiResponse<
     }
 }
 
+// ==================== Codex 渠道管理 ====================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct CodexChannel {
+    name: String,
+    baseurl: String,
+    apikey: String,
+    model: String,
+}
+
+fn parse_codex_channels(content: &str) -> Vec<CodexChannel> {
+    content
+        .split("=========")
+        .filter_map(|block| {
+            let block = block.trim();
+            if block.is_empty() {
+                return None;
+            }
+            let mut name = String::new();
+            let mut baseurl = String::new();
+            let mut apikey = String::new();
+            let mut model = String::new();
+            for line in block.lines() {
+                let line = line.trim();
+                if let Some(val) = line.strip_prefix("name=") {
+                    name = val.trim().to_string();
+                } else if let Some(val) = line.strip_prefix("baseurl=") {
+                    baseurl = val.trim().to_string();
+                } else if let Some(val) = line.strip_prefix("apikey=") {
+                    apikey = val.trim().to_string();
+                } else if let Some(val) = line.strip_prefix("model=") {
+                    model = val.trim().to_string();
+                }
+            }
+            if baseurl.is_empty() && apikey.is_empty() && model.is_empty() {
+                None
+            } else {
+                Some(CodexChannel { name, baseurl, apikey, model })
+            }
+        })
+        .collect()
+}
+
+fn serialize_codex_channels(channels: &[CodexChannel]) -> String {
+    channels
+        .iter()
+        .map(|c| format!("name={}\nbaseurl={}\napikey={}\nmodel={}", c.name, c.baseurl, c.apikey, c.model))
+        .collect::<Vec<_>>()
+        .join("\n=========\n")
+}
+
+#[tauri::command]
+async fn get_codex_channels(codex_config_path: String) -> ApiResponse<Vec<CodexChannel>> {
+    let file_path = Path::new(&codex_config_path).join("url2key.txt");
+
+    if !file_path.exists() {
+        return ApiResponse {
+            success: true,
+            error: None,
+            channels: None,
+            config: None,
+            data: Some(vec![]),
+        };
+    }
+
+    match fs::read_to_string(&file_path) {
+        Ok(content) => ApiResponse {
+            success: true,
+            error: None,
+            channels: None,
+            config: None,
+            data: Some(parse_codex_channels(&content)),
+        },
+        Err(e) => ApiResponse {
+            success: false,
+            error: Some(e.to_string()),
+            channels: None,
+            config: None,
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+async fn save_codex_channel(
+    codex_config_path: String,
+    name: String,
+    baseurl: String,
+    apikey: String,
+    model: String,
+    edit_index: i32,
+) -> ApiResponse<()> {
+    let dir_path = Path::new(&codex_config_path);
+    if !dir_path.exists() {
+        if let Err(e) = fs::create_dir_all(dir_path) {
+            return ApiResponse::error(format!("创建目录失败: {}", e));
+        }
+    }
+
+    let file_path = dir_path.join("url2key.txt");
+    let mut channel_list: Vec<CodexChannel> = if file_path.exists() {
+        match fs::read_to_string(&file_path) {
+            Ok(content) => parse_codex_channels(&content),
+            Err(_) => vec![],
+        }
+    } else {
+        vec![]
+    };
+
+    let new_channel = CodexChannel { name, baseurl, apikey, model };
+
+    if edit_index >= 0 {
+        let idx = edit_index as usize;
+        if idx < channel_list.len() {
+            channel_list[idx] = new_channel;
+        } else {
+            return ApiResponse::error("索引越界".to_string());
+        }
+    } else {
+        channel_list.insert(0, new_channel);
+    }
+
+    let content = serialize_codex_channels(&channel_list);
+    match fs::write(&file_path, content) {
+        Ok(_) => ApiResponse::success(),
+        Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn delete_codex_channel(
+    codex_config_path: String,
+    delete_index: usize,
+) -> ApiResponse<()> {
+    let file_path = Path::new(&codex_config_path).join("url2key.txt");
+
+    if !file_path.exists() {
+        return ApiResponse::error("配置文件不存在".to_string());
+    }
+
+    match fs::read_to_string(&file_path) {
+        Ok(content) => {
+            let mut channel_list = parse_codex_channels(&content);
+            if delete_index >= channel_list.len() {
+                return ApiResponse::error("索引越界".to_string());
+            }
+            channel_list.remove(delete_index);
+            let new_content = serialize_codex_channels(&channel_list);
+            match fs::write(&file_path, new_content) {
+                Ok(_) => ApiResponse::success(),
+                Err(e) => ApiResponse::error(e.to_string()),
+            }
+        }
+        Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct CodexActiveInfo {
+    api_key: String,
+    base_url: String,
+    model: String,
+    model_provider: String,
+}
+
+#[tauri::command]
+fn get_current_codex_env(codex_config_path: String) -> ApiResponse<CodexActiveInfo> {
+    let dir = Path::new(&codex_config_path);
+
+    let mut base_url = String::new();
+    let mut model = String::new();
+    let mut model_provider = String::new();
+    let mut api_key = String::new();
+
+    // 读取 config.toml
+    let config_path = dir.join("config.toml");
+    if config_path.exists() {
+        if let Ok(content) = fs::read_to_string(&config_path) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                let mut parts = trimmed.splitn(2, '=');
+                let key = parts.next().unwrap_or("").trim();
+                if let Some(val_part) = parts.next() {
+                    let val = val_part.trim().trim_matches('"');
+                    match key {
+                        "model" => model = val.to_string(),
+                        "base_url" => base_url = val.to_string(),
+                        "model_provider" => model_provider = val.to_string(),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    // 读取 auth.json
+    let auth_path = dir.join("auth.json");
+    if auth_path.exists() {
+        if let Ok(content) = fs::read_to_string(&auth_path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(key) = json.get("OPENAI_API_KEY").and_then(|v| v.as_str()) {
+                    api_key = key.to_string();
+                }
+            }
+        }
+    }
+
+    ApiResponse {
+        success: true,
+        error: None,
+        channels: None,
+        config: None,
+        data: Some(CodexActiveInfo { api_key, base_url, model, model_provider }),
+    }
+}
+
+#[tauri::command]
+async fn switch_codex_channel(
+    codex_config_path: String,
+    name: String,
+    api_key: String,
+    base_url: String,
+    model: String,
+) -> ApiResponse<()> {
+    let dir = Path::new(&codex_config_path);
+    if !dir.exists() {
+        if let Err(e) = fs::create_dir_all(dir) {
+            return ApiResponse::error(format!("创建目录失败: {}", e));
+        }
+    }
+
+    // 写入 config.toml：保留其他行，只更新 model、base_url、model_provider
+    let config_path = dir.join("config.toml");
+    let existing_content = if config_path.exists() {
+        fs::read_to_string(&config_path).unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    let mut found_model = false;
+    let mut found_base_url = false;
+    let mut found_model_provider = false;
+    let mut new_lines: Vec<String> = Vec::new();
+
+    for line in existing_content.lines() {
+        let trimmed = line.trim();
+        let key = trimmed.split('=').next().unwrap_or("").trim();
+        if key == "model" {
+            if !found_model {
+                new_lines.push(format!("model = \"{}\"", model));
+                found_model = true;
+            }
+        } else if key == "base_url" {
+            if !found_base_url {
+                new_lines.push(format!("base_url = \"{}\"", base_url));
+                found_base_url = true;
+            }
+        } else if key == "model_provider" {
+            if !found_model_provider {
+                new_lines.push(format!("model_provider = \"{}\"", name));
+                found_model_provider = true;
+            }
+        } else {
+            new_lines.push(line.to_string());
+        }
+    }
+
+    if !found_model {
+        new_lines.push(format!("model = \"{}\"", model));
+    }
+    if !found_base_url {
+        new_lines.push(format!("base_url = \"{}\"", base_url));
+    }
+    if !found_model_provider {
+        new_lines.push(format!("model_provider = \"{}\"", name));
+    }
+
+    if let Err(e) = fs::write(&config_path, new_lines.join("\n")) {
+        return ApiResponse::error(format!("写入 config.toml 失败: {}", e));
+    }
+
+    // 写入 auth.json：保留其他字段，只更新 OPENAI_API_KEY
+    let auth_path = dir.join("auth.json");
+    let mut auth_json: serde_json::Value = if auth_path.exists() {
+        match fs::read_to_string(&auth_path) {
+            Ok(content) => serde_json::from_str(&content).unwrap_or(serde_json::json!({})),
+            Err(_) => serde_json::json!({}),
+        }
+    } else {
+        serde_json::json!({})
+    };
+
+    if let Some(obj) = auth_json.as_object_mut() {
+        obj.insert("OPENAI_API_KEY".to_string(), serde_json::json!(api_key));
+    }
+
+    match serde_json::to_string_pretty(&auth_json) {
+        Ok(json_str) => {
+            if let Err(e) = fs::write(&auth_path, json_str) {
+                return ApiResponse::error(format!("写入 auth.json 失败: {}", e));
+            }
+        }
+        Err(e) => return ApiResponse::error(format!("序列化 auth.json 失败: {}", e)),
+    }
+
+    ApiResponse::success()
+}
+
+#[tauri::command(rename_all = "camelCase")]
+async fn launch_codex(terminal_dir: String) -> ApiResponse<()> {
+    open_terminal("codex", &terminal_dir)
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -641,6 +954,13 @@ fn main() {
             save_droid_channel,
             delete_droid_channel,
             launch_droid,
+            // Codex 渠道管理
+            get_codex_channels,
+            save_codex_channel,
+            delete_codex_channel,
+            get_current_codex_env,
+            switch_codex_channel,
+            launch_codex,
             // StatusLine 管理
             get_statusline_files,
             read_statusline_file,

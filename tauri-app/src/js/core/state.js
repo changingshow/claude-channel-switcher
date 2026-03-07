@@ -5,6 +5,7 @@
 class AppState {
     constructor() {
         this.configPath = '';
+        this.codexConfigPath = '';
         this.terminalDir = '';
         this.theme = localStorage.getItem('theme') || 'dark';
         this.language = localStorage.getItem('language') || 'zh-CN';
@@ -20,7 +21,7 @@ class AppState {
      */
     save(key, value) {
         this[key] = value;
-        if (['theme', 'language', 'configPath', 'terminalDir'].includes(key)) {
+        if (['theme', 'language', 'configPath', 'codexConfigPath', 'terminalDir'].includes(key)) {
             localStorage.setItem(key, value);
         }
     }
@@ -41,7 +42,9 @@ class AppState {
      */
     initConfigPath(homeDirectory) {
         const defaultConfigPath = `${homeDirectory}\\.claude`;
+        const defaultCodexConfigPath = `${homeDirectory}\\.codex`;
         this.configPath = this.load('configPath', defaultConfigPath);
+        this.codexConfigPath = this.load('codexConfigPath', defaultCodexConfigPath);
         this.terminalDir = this.load('terminalDir', homeDirectory);
     }
 }

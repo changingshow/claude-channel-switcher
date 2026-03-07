@@ -47,6 +47,7 @@ async function initializeApp() {
     titlebar.init();
     confirmDialog.init();
     settings.init();
+    codex.init();
     droid.init();
     statusline.init();
 
@@ -55,6 +56,7 @@ async function initializeApp() {
 
     // 加载渠道列表
     await channels.loadChannels();
+    await codex.loadChannels();
     await droid.loadChannels();
 }
 
@@ -130,6 +132,7 @@ function updateUILanguage() {
     titlebar.updateLanguage();
     navigation.updateLanguage();
     channels.updateLanguage();
+    codex.updateLanguage();
     droid.updateLanguage();
     statusline.updateLanguage();
     settings.updateLanguage();

@@ -41,8 +41,12 @@
                     <span class="nav-icon" aria-hidden="true">🏠</span>
                     <span class="nav-text"></span>
                 </button>
-                <button class="nav-item" data-page="statusline" aria-label="StatusLine 配置">
+                <button class="nav-item" data-page="statusline" aria-label="Claude StatusLine">
                     <span class="nav-icon" aria-hidden="true">📊</span>
+                    <span class="nav-text"></span>
+                </button>
+                <button class="nav-item" data-page="codex" aria-label="Codex 渠道">
+                    <span class="nav-icon" aria-hidden="true">📘</span>
                     <span class="nav-text"></span>
                 </button>
                 <button class="nav-item" data-page="droid" aria-label="Droid 渠道">
@@ -88,6 +92,27 @@
                 </header>
 
                 <div class="channels-container" id="channels-list" role="list"></div>
+            </section>
+
+            <section id="codex-page" class="page">
+                <header class="page-header">
+                    <div class="header-left">
+                        <h2 class="page-title"></h2>
+                        <span class="codex-channel-count" aria-live="polite"></span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="refresh-codex-btn" aria-label="刷新渠道列表">
+                            <span aria-hidden="true">🔄</span>
+                            <span></span>
+                        </button>
+                        <button class="btn btn-primary" id="add-codex-btn" aria-label="新建渠道">
+                            <span aria-hidden="true">➕</span>
+                            <span></span>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="channels-container" id="codex-list" role="list"></div>
             </section>
 
             <section id="droid-page" class="page">
@@ -205,7 +230,7 @@
                 </header>
 
                 <div class="settings-container">
-                    <article class="setting-card">
+                    <article class="setting-card" id="setting-claude-path">
                         <h3 class="setting-title"></h3>
                         <p class="setting-description"></p>
                         <div class="setting-input-group">
@@ -216,7 +241,18 @@
                         </div>
                     </article>
 
-                    <article class="setting-card">
+                    <article class="setting-card" id="setting-codex-path">
+                        <h3 class="setting-title"></h3>
+                        <p class="setting-description"></p>
+                        <div class="setting-input-group">
+                            <label for="codex-path-input" class="sr-only">Codex 配置文件路径</label>
+                            <input type="text" id="codex-path-input" class="setting-input" readonly
+                                aria-readonly="true">
+                            <button class="btn btn-secondary" id="browse-codex-path-btn" aria-label="浏览文件夹"></button>
+                        </div>
+                    </article>
+
+                    <article class="setting-card" id="setting-terminal-dir">
                         <h3 class="setting-title"></h3>
                         <p class="setting-description"></p>
                         <div class="setting-input-group">
@@ -227,7 +263,7 @@
                         </div>
                     </article>
 
-                    <article class="setting-card">
+                    <article class="setting-card" id="setting-theme">
                         <h3 class="setting-title"></h3>
                         <p class="setting-description"></p>
                         <div class="preset-buttons" role="group" aria-label="主题选择">
@@ -238,7 +274,7 @@
                         </div>
                     </article>
 
-                    <article class="setting-card">
+                    <article class="setting-card" id="setting-language">
                         <h3 class="setting-title"></h3>
                         <p class="setting-description"></p>
                         <div class="preset-buttons" role="group" aria-label="语言选择">
@@ -249,7 +285,7 @@
                         </div>
                     </article>
 
-                    <article class="setting-card about-card">
+                    <article class="setting-card about-card" id="setting-about">
                         <h3 class="setting-title about-title"></h3>
 
                         <p class="about-description"></p>
@@ -373,6 +409,40 @@
         </div>
     </div>
 
+    <!-- Codex 渠道模态框 -->
+    <div class="modal" id="codex-modal" role="dialog" aria-modal="true" aria-labelledby="codex-modal-title">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 class="modal-title" id="codex-modal-title"></h3>
+                <button class="modal-close" id="codex-modal-close-btn" aria-label="关闭对话框">✕</button>
+            </header>
+            <form class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="codex-name-input"></label>
+                    <input type="text" id="codex-name-input" class="form-input" placeholder=""
+                        maxlength="18" pattern="[A-Za-z0-9\-_]+" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="codex-baseurl-input"></label>
+                    <input type="text" id="codex-baseurl-input" class="form-input" placeholder="" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="codex-apikey-input"></label>
+                    <input type="text" id="codex-apikey-input" class="form-input" placeholder="" required
+                        autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="codex-model-input"></label>
+                    <input type="text" id="codex-model-input" class="form-input" placeholder="">
+                </div>
+            </form>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" id="codex-modal-cancel-btn" type="button"></button>
+                <button class="btn btn-primary" id="codex-modal-save-btn" type="button"></button>
+            </footer>
+        </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- 烟花画布 -->
@@ -416,6 +486,7 @@
     <!-- 功能模块 -->
     <script src="js/features/theme.js"></script>
     <script src="js/features/channels.js"></script>
+    <script src="js/features/codex.js"></script>
     <script src="js/features/droid.js"></script>
     <script src="js/features/settings.js"></script>
     <script src="js/features/fireworks.js"></script>

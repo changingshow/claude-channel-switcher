@@ -40,6 +40,10 @@ class NavigationManager {
             droid.loadChannels();
         }
 
+        if (pageName === 'codex' && typeof codex !== 'undefined') {
+            codex.render();
+        }
+
         // 切换到 statusline 页面时刷新文件列表
         if (pageName === 'statusline' && typeof statusline !== 'undefined') {
             statusline.loadFiles();
@@ -74,6 +78,8 @@ class NavigationManager {
             let ariaKey = 'settingsPage';
             if (page === 'channels') {
                 ariaKey = 'channelManagement';
+            } else if (page === 'codex') {
+                ariaKey = 'codexPage';
             } else if (page === 'droid') {
                 ariaKey = 'droidPage';
             } else if (page === 'statusline') {

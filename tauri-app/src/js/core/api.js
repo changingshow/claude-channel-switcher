@@ -229,6 +229,45 @@ class TauriAPI {
         return await this.safeInvoke('query_balance', { url, method, token });
     }
 
+    // ==================== Codex 渠道管理 API ====================
+
+    async getCodexChannels(codexConfigPath) {
+        return await this.safeInvoke('get_codex_channels', { codexConfigPath });
+    }
+
+    async saveCodexChannel(params) {
+        return await this.safeInvoke('save_codex_channel', {
+            codexConfigPath: params.codexConfigPath,
+            name: params.name,
+            baseurl: params.baseurl,
+            apikey: params.apikey,
+            model: params.model,
+            editIndex: params.editIndex
+        });
+    }
+
+    async deleteCodexChannel(codexConfigPath, deleteIndex) {
+        return await this.safeInvoke('delete_codex_channel', { codexConfigPath, deleteIndex });
+    }
+
+    async getCurrentCodexEnv(codexConfigPath) {
+        return await this.safeInvoke('get_current_codex_env', { codexConfigPath });
+    }
+
+    async switchCodexChannel(params) {
+        return await this.safeInvoke('switch_codex_channel', {
+            codexConfigPath: params.codexConfigPath,
+            name: params.name,
+            apiKey: params.apiKey,
+            baseUrl: params.baseUrl,
+            model: params.model
+        });
+    }
+
+    async launchCodex(terminalDir) {
+        return await this.safeInvoke('launch_codex', { terminalDir });
+    }
+
     // ==================== StatusLine 管理 API ====================
 
     /**

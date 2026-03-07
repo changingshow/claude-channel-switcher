@@ -7,8 +7,9 @@ const translations = {
         },
         nav: {
             channels: 'Claude 渠道',
+            statusline: 'Claude 状态栏',
+            codex: 'Codex 渠道',
             droid: 'Droid 渠道',
-            statusline: 'StatusLine',
             settings: '设置'
         },
         channels: {
@@ -84,6 +85,59 @@ const translations = {
                 errorApiKeyRequired: '请输入 API Key',
                 errorNameDuplicate: '渠道名称已存在，请使用其他名称',
                 confirmDelete: '确定要删除 Droid 渠道「{name}」吗？'
+            }
+        },
+        codex: {
+            title: 'Codex 渠道',
+            count: '个渠道',
+            refresh: '刷新',
+            add: '新建',
+            empty: {
+                icon: '📘',
+                text: '暂无 Codex 渠道',
+                hint: '点击右上角「新建」按钮添加渠道'
+            },
+            status: {
+                active: '已激活',
+                inactive: '待激活'
+            },
+            actions: {
+                launch: '启动',
+                switch: '切换',
+                edit: '编辑',
+                delete: '删除'
+            },
+            modal: {
+                titleNew: '新建 Codex 渠道',
+                titleEdit: '编辑 Codex 渠道',
+                fields: {
+                    name: '渠道名称',
+                    namePlaceholder: '仅英文字母、数字、-、_',
+                    baseurl: 'Base URL',
+                    baseurlPlaceholder: 'https://api.example.com',
+                    apikey: 'API Key',
+                    apikeyPlaceholder: 'sk-xxxxxx...',
+                    model: '模型名称',
+                    modelPlaceholder: '例如：o3-mini'
+                },
+                buttons: {
+                    cancel: '取消',
+                    save: '保存'
+                }
+            },
+            messages: {
+                channelCreated: 'Codex 渠道已创建',
+                channelUpdated: 'Codex 渠道已更新',
+                channelDeleted: 'Codex 渠道已删除',
+                channelSwitched: '已切换到 Codex 渠道',
+                channelLaunched: '已在新窗口中启动 Codex',
+                channelsRefreshed: 'Codex 渠道列表已刷新',
+                errorNameRequired: '请输入渠道名称',
+                errorNameInvalid: '渠道名称仅支持英文字母、数字、-、_，最多18位',
+                errorBaseurlRequired: '请输入 Base URL',
+                errorApikeyRequired: '请输入 API Key',
+                errorModelRequired: '请输入模型名称',
+                confirmDelete: '确定要删除该 Codex 渠道吗？'
             }
         },
         statusline: {
@@ -178,6 +232,12 @@ const translations = {
                 browse: '浏览',
                 label: '配置文件路径'
             },
+            codexPath: {
+                title: 'Codex 配置文件路径',
+                description: '设置 Codex 配置文件的存储位置',
+                browse: '浏览',
+                label: 'Codex 配置文件路径'
+            },
             terminal: {
                 title: '终端程序',
                 description: '选择启动 Claude 时使用的终端'
@@ -206,6 +266,7 @@ const translations = {
             channelLaunched: '已在新窗口中启动 Claude\n当前渠道：{name}',
             channelsRefreshed: '渠道列表已刷新',
             pathUpdated: '配置路径已更新',
+            codexPathUpdated: 'Codex 配置路径已更新',
             terminalSet: '终端已设置为：{terminal}',
             terminalDirUpdated: '终端工作目录已更新',
             themeChanged: '已切换到{theme}主题',
@@ -228,8 +289,11 @@ const translations = {
             addChannel: '新建渠道',
             refreshDroid: '刷新 Droid 渠道列表',
             addDroid: '新建 Droid 渠道',
+            refreshCodex: '刷新 Codex 渠道列表',
+            addCodex: '新建 Codex 渠道',
+            codexPage: 'Codex 渠道',
             droidPage: 'Droid 渠道管理',
-            statuslinePage: 'StatusLine 配置页面',
+            statuslinePage: 'Claude 状态栏配置页面',
             browseFolder: '浏览文件夹',
             closeDialog: '关闭对话框',
             channelManagement: '渠道管理',
@@ -256,8 +320,9 @@ const translations = {
         },
         nav: {
             channels: 'Channels',
+            statusline: 'Claude StatusLine',
+            codex: 'Codex',
             droid: 'Droid Channels',
-            statusline: 'StatusLine',
             settings: 'Settings'
         },
         channels: {
@@ -333,6 +398,59 @@ const translations = {
                 errorApiKeyRequired: 'Please enter API Key',
                 errorNameDuplicate: 'Channel name already exists, please use another name',
                 confirmDelete: 'Are you sure you want to delete Droid channel "{name}"?'
+            }
+        },
+        codex: {
+            title: 'Codex Channels',
+            count: 'channels',
+            refresh: 'Refresh',
+            add: 'New',
+            empty: {
+                icon: '📘',
+                text: 'No Codex Channels',
+                hint: 'Click "New" button to add a channel'
+            },
+            status: {
+                active: 'Active',
+                inactive: 'Inactive'
+            },
+            actions: {
+                launch: 'Launch',
+                switch: 'Switch',
+                edit: 'Edit',
+                delete: 'Delete'
+            },
+            modal: {
+                titleNew: 'New Codex Channel',
+                titleEdit: 'Edit Codex Channel',
+                fields: {
+                    name: 'Channel Name',
+                    namePlaceholder: 'Letters, digits, - and _ only',
+                    baseurl: 'Base URL',
+                    baseurlPlaceholder: 'https://api.example.com',
+                    apikey: 'API Key',
+                    apikeyPlaceholder: 'sk-xxxxxx...',
+                    model: 'Model Name',
+                    modelPlaceholder: 'e.g. o3-mini'
+                },
+                buttons: {
+                    cancel: 'Cancel',
+                    save: 'Save'
+                }
+            },
+            messages: {
+                channelCreated: 'Codex channel created',
+                channelUpdated: 'Codex channel updated',
+                channelDeleted: 'Codex channel deleted',
+                channelSwitched: 'Switched to Codex channel',
+                channelLaunched: 'Codex launched in new window',
+                channelsRefreshed: 'Codex channel list refreshed',
+                errorNameRequired: 'Channel name is required',
+                errorNameInvalid: 'Only letters, digits, - and _ allowed, max 18 chars',
+                errorBaseurlRequired: 'Base URL is required',
+                errorApikeyRequired: 'API Key is required',
+                errorModelRequired: 'Model name is required',
+                confirmDelete: 'Are you sure you want to delete this Codex channel?'
             }
         },
         statusline: {
@@ -427,6 +545,12 @@ const translations = {
                 browse: 'Browse',
                 label: 'Configuration path'
             },
+            codexPath: {
+                title: 'Codex Config Path',
+                description: 'Set the Codex configuration file location',
+                browse: 'Browse',
+                label: 'Codex configuration path'
+            },
             terminal: {
                 title: 'Terminal Program',
                 description: 'Choose the terminal to launch Claude'
@@ -455,6 +579,7 @@ const translations = {
             channelLaunched: 'Claude launched in new window\nChannel: {name}',
             channelsRefreshed: 'Channels refreshed',
             pathUpdated: 'Config path updated',
+            codexPathUpdated: 'Codex configuration path updated',
             terminalSet: 'Terminal set to: {terminal}',
             terminalDirUpdated: 'Terminal working directory updated',
             themeChanged: 'Switched to {theme} theme',
@@ -477,8 +602,11 @@ const translations = {
             addChannel: 'Add new channel',
             refreshDroid: 'Refresh Droid channel list',
             addDroid: 'Add new Droid channel',
+            refreshCodex: 'Refresh Codex channel list',
+            addCodex: 'Add new Codex channel',
+            codexPage: 'Codex Channels',
             droidPage: 'Droid Channel Management',
-            statuslinePage: 'StatusLine Configuration Page',
+            statuslinePage: 'Claude StatusLine Configuration Page',
             browseFolder: 'Browse folder',
             closeDialog: 'Close dialog',
             channelManagement: 'Channel management',
