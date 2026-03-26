@@ -314,7 +314,7 @@ fn try_launch_with_wt(dir: &str, shell: &str, command: &str) -> Option<ApiRespon
     // 使用 PowerShell Start-Process 启动 wt（Win10/Win11 兼容性最好）
     // 注意：这里需要仔细处理引号转义
     let ps_command = format!(
-        "Start-Process -FilePath wt -ArgumentList '-d \"{}\" {} -NoExit -Command {}' -Wait -PassThru",
+        "Start-Process -FilePath wt -ArgumentList '-p \"PowerShell\" -d \"{}\" {} -NoExit -Command {}' -Wait -PassThru",
         clean_dir, shell, command
     );
 

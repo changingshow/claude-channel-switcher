@@ -242,55 +242,57 @@ input,
 }
 
 .sidebar {
-    width: 220px;
+    width: 240px;
     background: var(--bg-primary);
     display: flex;
     flex-direction: column;
-    padding: 40px 24px;
+    padding: 40px 28px 20px;
 }
 
 .logo {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 28px;
+    padding: 28px 16px;
+    position: relative;
+    background: radial-gradient(ellipse at center, rgba(10, 132, 255, 0.08) 0%, transparent 70%);
+    border-radius: var(--border-radius-lg);
 }
 
-.logo-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-    animation: float 3s ease-in-out infinite;
+.logo::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(10, 132, 255, 0.2), transparent);
 }
 
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
+.logo-icon-img {
+    width: 80px;
+    height: 80px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s ease;
+    cursor: pointer;
+    border-radius: 18px;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
 }
 
-.logo-text {
-    font-size: 17px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
+.logo-icon-img:hover {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 14px rgba(10, 132, 255, 0.4)) drop-shadow(0 0 30px rgba(10, 132, 255, 0.12));
 }
 
 .nav-menu {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
+    gap: 12px;
+    padding: 11px 18px;
     border: none;
     background: transparent;
     color: var(--text-tertiary);
@@ -376,9 +378,22 @@ input,
 /* 侧边栏主题切换区域 */
 .sidebar-theme-switch {
     margin-top: auto;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+    padding-top: 16px;
+    padding-bottom: 8px;
     display: flex;
     justify-content: center;
+    position: relative;
+}
+
+.sidebar-theme-switch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--separator), transparent);
 }
 
 .sidebar-theme-switch+.version {
@@ -625,6 +640,8 @@ input,
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .header-left {
@@ -666,6 +683,7 @@ input,
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-standard);
+    white-space: nowrap;
     letter-spacing: -0.01em;
 }
 
@@ -725,16 +743,20 @@ input,
 }
 
 .btn-small {
-    padding: 6px 14px;
+    padding: 6px 10px;
     font-size: 13px;
 }
 
 .channels-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     padding: 4px;
     transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.channels-container.single-column {
+    grid-template-columns: 1fr;
 }
 
 .channel-card {
@@ -821,8 +843,8 @@ body.light-theme .status-indicator.active {
 
 .channel-actions {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 /* 余额显示样式 */

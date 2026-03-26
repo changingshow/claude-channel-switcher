@@ -35,10 +35,11 @@
         "fullscreen": false,
         "resizable": true,
         "title": "Claude渠道切换器",
-        "width": 1200,
+        "width": 1280,
         "height": 800,
         "minWidth": 1000,
         "minHeight": 650,
+        "maxWidth": 1400,
         "label": "main",
         "decorations": false
       }
