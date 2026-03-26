@@ -749,14 +749,10 @@ input,
 
 .channels-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 24px;
     padding: 4px;
     transition: opacity 0.3s ease, filter 0.3s ease;
-}
-
-.channels-container.single-column {
-    grid-template-columns: 1fr;
 }
 
 .channel-card {

@@ -58,9 +58,6 @@ async function initializeApp() {
     await channels.loadChannels();
     await codex.loadChannels();
     await droid.loadChannels();
-
-    // 初始化布局同步（header换行 ↔ 卡片列数）
-    initLayoutSync();
 }
 
 /**
@@ -145,26 +142,3 @@ function updateUILanguage() {
 
 // 将函数暴露到全局作用域，以便其他模块可以调用
 window.updateUILanguage = updateUILanguage;
-
-/**
- * 布局同步：检测 header 是否换行，同步切换卡片列数
- */
-function initLayoutSync() {
-    const observer = new ResizeObserver(() => {
-        document.querySelectorAll('.page-header').forEach(header => {
-            const headerActions = header.querySelector('.header-actions');
-            const headerLeft = header.querySelector('.header-left');
-            if (!headerActions || !headerLeft) return;
-
-            const wrapped = headerActions.getBoundingClientRect().top > headerLeft.getBoundingClientRect().top + 5;
-
-            const container = header.nextElementSibling;
-            if (container && container.classList.contains('channels-container')) {
-                container.classList.toggle('single-column', wrapped);
-            }
-        });
-    });
-
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) observer.observe(mainContent);
-}
