@@ -4,12 +4,15 @@
  * 渠道数据存储在 codexConfigPath/channels.json 中
  * 通过 auth.json 中的 OPENAI_API_KEY 判断激活状态和执行切换
  */
+const CODEX_SWITCHING_MIN_DURATION = 300;
+
 class CodexManager {
     constructor() {
         this.codexList = null;
         this.codexCount = null;
         this.codexChannels = [];
         this.currentApiKey = '';
+        this.switchingChannelName = null;
         this.editingIndex = -1;
         this.modal = null;
         this.nameInput = null;
@@ -142,9 +145,11 @@ class CodexManager {
         }
 
         const fragment = document.createDocumentFragment();
+        const isAnySwitching = !!this.switchingChannelName;
         this.codexChannels.forEach((channel, index) => {
             const isActive = this.isChannelActive(channel);
-            const card = this.createChannelCard(channel, index, isActive);
+            const isSwitching = channel.name === this.switchingChannelName;
+            const card = this.createChannelCard(channel, index, isActive, isSwitching, isAnySwitching);
             fragment.appendChild(card);
         });
 
@@ -152,17 +157,34 @@ class CodexManager {
         this.codexList.appendChild(fragment);
     }
 
-    createChannelCard(channel, index, isActive) {
+    createChannelCard(channel, index, isActive, isSwitching, isAnySwitching) {
         const card = document.createElement('div');
-        card.className = `channel-card${isActive ? ' active' : ''}`;
+        card.className = `channel-card${isActive ? ' active' : ''}${isSwitching ? ' switching' : ''}`;
+        card.setAttribute('aria-busy', isSwitching ? 'true' : 'false');
 
         const displayName = channel.name || '-';
         const displayModel = channel.model || '-';
 
-        const statusText = isActive ? i18n.t('codex.status.active') : i18n.t('codex.status.inactive');
-        const statusIndicator = `<span class="status-indicator ${isActive ? 'active' : ''}"></span> ${statusText}`;
+        let statusClass = '';
+        let statusText = i18n.t('codex.status.inactive');
+        if (isSwitching) {
+            statusClass = 'switching';
+            statusText = i18n.t('codex.status.switching');
+        } else if (isActive) {
+            statusClass = 'active';
+            statusText = i18n.t('codex.status.active');
+        }
+        const statusIndicator = `<span class="status-indicator ${statusClass}"></span> ${statusText}`;
+        const switchLabel = isSwitching
+            ? `⏳ ${i18n.t('codex.actions.switching')}`
+            : `⚡ ${i18n.t('codex.actions.switch')}`;
+        const actionsDisabled = isAnySwitching ? 'disabled' : '';
+        const switchingBadge = isSwitching
+            ? `<div class="channel-switching-badge"><span class="channel-switching-spinner" aria-hidden="true"></span><span>${i18n.t('codex.actions.switching')}</span></div>`
+            : '';
 
         card.innerHTML = `
+            ${switchingBadge}
             <div class="channel-header">
                 <div class="channel-icon">📘</div>
                 <div class="channel-info">
@@ -173,56 +195,79 @@ class CodexManager {
             </div>
             <div class="channel-actions">
                 ${isActive ? `<button class="btn btn-success btn-small launch-btn">🚀 ${i18n.t('codex.actions.launch')}</button>` : ''}
-                <button class="btn btn-primary btn-small switch-btn" ${isActive ? 'disabled' : ''}>⚡ ${i18n.t('codex.actions.switch')}</button>
-                <button class="btn btn-edit btn-small edit-btn">✏️ ${i18n.t('codex.actions.edit')}</button>
-                <button class="btn btn-danger btn-small delete-btn">🗑️ ${i18n.t('codex.actions.delete')}</button>
+                <button class="btn btn-primary btn-small switch-btn" ${isActive || isAnySwitching ? 'disabled' : ''}>${switchLabel}</button>
+                <button class="btn btn-edit btn-small edit-btn" ${actionsDisabled}>✏️ ${i18n.t('codex.actions.edit')}</button>
+                <button class="btn btn-danger btn-small delete-btn" ${actionsDisabled}>🗑️ ${i18n.t('codex.actions.delete')}</button>
             </div>
         `;
 
-        this.attachCardEventListeners(card, channel, index, isActive);
+        this.attachCardEventListeners(card, channel, index, isActive, isSwitching, isAnySwitching);
         return card;
     }
 
-    attachCardEventListeners(card, channel, index, isActive) {
+    attachCardEventListeners(card, channel, index, isActive, isSwitching, isAnySwitching) {
         if (isActive) {
             const launchBtn = card.querySelector('.launch-btn');
-            launchBtn?.addEventListener('click', () => this.launchCodex());
+            if (!isAnySwitching) {
+                launchBtn?.addEventListener('click', () => this.launchCodex());
+            }
         }
 
         const switchBtn = card.querySelector('.switch-btn');
-        if (!isActive) {
+        if (!isActive && !isSwitching && !isAnySwitching) {
             switchBtn?.addEventListener('click', () => this.switchChannel(channel));
         }
 
         const editBtn = card.querySelector('.edit-btn');
-        editBtn?.addEventListener('click', () => this.openEditModal(channel, index));
+        if (!isAnySwitching) {
+            editBtn?.addEventListener('click', () => this.openEditModal(channel, index));
+        }
 
         const deleteBtn = card.querySelector('.delete-btn');
-        deleteBtn?.addEventListener('click', () => this.deleteChannel(index));
+        if (!isAnySwitching) {
+            deleteBtn?.addEventListener('click', () => this.deleteChannel(index));
+        }
     }
 
     async switchChannel(channel) {
-        const previousApiKey = this.currentApiKey;
+        if (this.switchingChannelName) {
+            return;
+        }
 
-        this.currentApiKey = channel.apikey;
+        const switchStartedAt = Date.now();
+        this.switchingChannelName = channel.name || '';
         this.renderChannels();
 
         try {
             const result = await api.switchCodexChannel(state.codexConfigPath, channel.name || '');
+            await this.ensureSwitchingVisible(switchStartedAt);
 
             if (result.success) {
+                this.switchingChannelName = null;
                 toast.show(i18n.t('codex.messages.channelSwitched'));
                 await this.loadChannels();
             } else {
-                this.currentApiKey = previousApiKey;
+                this.switchingChannelName = null;
                 this.renderChannels();
                 ErrorHandler.showError(result.error, '切换失败');
             }
         } catch (error) {
-            this.currentApiKey = previousApiKey;
+            await this.ensureSwitchingVisible(switchStartedAt);
+            this.switchingChannelName = null;
             this.renderChannels();
             ErrorHandler.showError(error, '切换失败');
         }
+    }
+
+    async ensureSwitchingVisible(startedAt) {
+        const elapsed = Date.now() - startedAt;
+        if (elapsed >= CODEX_SWITCHING_MIN_DURATION) {
+            return;
+        }
+
+        await new Promise(resolve => {
+            setTimeout(resolve, CODEX_SWITCHING_MIN_DURATION - elapsed);
+        });
     }
 
     async launchCodex() {

@@ -99,11 +99,13 @@ const translations = {
             },
             status: {
                 active: '已激活',
-                inactive: '待激活'
+                inactive: '待激活',
+                switching: '切换中'
             },
             actions: {
                 launch: '启动',
                 switch: '切换',
+                switching: '切换中',
                 edit: '编辑',
                 delete: '删除'
             },
@@ -339,11 +341,13 @@ const translations = {
             },
             status: {
                 active: 'Active',
-                inactive: 'Inactive'
+                inactive: 'Inactive',
+                switching: 'Switching'
             },
             actions: {
                 launch: 'Launch',
                 switch: 'Switch',
+                switching: 'Switching',
                 edit: 'Edit',
                 delete: 'Delete'
             },
