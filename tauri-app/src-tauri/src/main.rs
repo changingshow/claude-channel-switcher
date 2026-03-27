@@ -1,11 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod codex;
+
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::io::Write;
-use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct BalanceApi {
@@ -22,7 +24,11 @@ struct BalanceApi {
 struct ChannelConfig {
     #[serde(default)]
     env: HashMap<String, String>,
-    #[serde(rename = "balanceApi", skip_serializing_if = "Option::is_none", default)]
+    #[serde(
+        rename = "balanceApi",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
     balance_api: Option<BalanceApi>,
     // 运行时从文件系统读取的修改时间，只序列化到响应，不从文件反序列化
     #[serde(skip_deserializing, default)]
@@ -96,13 +102,11 @@ async fn get_channels(config_path: String) -> ApiResponse<()> {
 #[tauri::command]
 async fn get_active_channel(config_path: String) -> ApiResponse<()> {
     let settings_path = Path::new(&config_path).join("settings.json");
-    
+
     match fs::read_to_string(&settings_path) {
-        Ok(content) => {
-            match serde_json::from_str::<ChannelConfig>(&content) {
-                Ok(config) => ApiResponse::success_with_config(config),
-                Err(e) => ApiResponse::error(e.to_string()),
-            }
+        Ok(content) => match serde_json::from_str::<ChannelConfig>(&content) {
+            Ok(config) => ApiResponse::success_with_config(config),
+            Err(e) => ApiResponse::error(e.to_string()),
         },
         Err(e) => ApiResponse::error(e.to_string()),
     }
@@ -122,7 +126,10 @@ async fn save_channel(
 ) -> ApiResponse<()> {
     let mut env = HashMap::new();
     env.insert("ANTHROPIC_AUTH_TOKEN".to_string(), token);
-    env.insert("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".to_string(), "1".to_string());
+    env.insert(
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".to_string(),
+        "1".to_string(),
+    );
 
     if !url.is_empty() {
         env.insert("ANTHROPIC_BASE_URL".to_string(), url);
@@ -131,8 +138,16 @@ async fn save_channel(
     let balance_api = if !balance_url.is_empty() {
         Some(BalanceApi {
             url: Some(balance_url),
-            method: if balance_method.is_empty() { Some("POST".to_string()) } else { Some(balance_method) },
-            field: if balance_field.is_empty() { None } else { Some(balance_field) },
+            method: if balance_method.is_empty() {
+                Some("POST".to_string())
+            } else {
+                Some(balance_method)
+            },
+            field: if balance_field.is_empty() {
+                None
+            } else {
+                Some(balance_field)
+            },
         })
     } else {
         None
@@ -150,13 +165,11 @@ async fn save_channel(
     }
 
     let file_path = Path::new(&config_path).join(format!("settings-{}.json", channel_name));
-    
+
     match serde_json::to_string_pretty(&config) {
-        Ok(json_content) => {
-            match fs::write(&file_path, json_content) {
-                Ok(_) => ApiResponse::success(),
-                Err(e) => ApiResponse::error(e.to_string()),
-            }
+        Ok(json_content) => match fs::write(&file_path, json_content) {
+            Ok(_) => ApiResponse::success(),
+            Err(e) => ApiResponse::error(e.to_string()),
         },
         Err(e) => ApiResponse::error(e.to_string()),
     }
@@ -166,7 +179,7 @@ async fn save_channel(
 async fn delete_channel(config_path: String, channel_name: String) -> ApiResponse<()> {
     let source_path = Path::new(&config_path).join(format!("settings-{}.json", channel_name));
     let target_path = Path::new(&config_path).join(format!("settings-{}.json.del", channel_name));
-    
+
     match fs::rename(&source_path, &target_path) {
         Ok(_) => ApiResponse::success(),
         Err(e) => ApiResponse::error(e.to_string()),
@@ -177,18 +190,18 @@ async fn delete_channel(config_path: String, channel_name: String) -> ApiRespons
 async fn switch_channel(config_path: String, channel_name: String) -> ApiResponse<()> {
     let source_path = Path::new(&config_path).join(format!("settings-{}.json", channel_name));
     let target_path = Path::new(&config_path).join("settings.json");
-    
+
     // 读取源渠道配置
     let source_content = match fs::read_to_string(&source_path) {
         Ok(content) => content,
         Err(e) => return ApiResponse::error(e.to_string()),
     };
-    
+
     let source_json: serde_json::Value = match serde_json::from_str(&source_content) {
         Ok(v) => v,
         Err(e) => return ApiResponse::error(e.to_string()),
     };
-    
+
     // 读取目标 settings.json（如果存在）
     let mut target_json: serde_json::Value = if target_path.exists() {
         match fs::read_to_string(&target_path) {
@@ -201,7 +214,7 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
     } else {
         serde_json::json!({})
     };
-    
+
     // 只覆写 env 和 balanceApi 字段，保留 settings.json 中的其他配置
     if let Some(target_obj) = target_json.as_object_mut() {
         // 检查 env 是否存在且不为空
@@ -210,14 +223,14 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
             .and_then(|e| e.as_object())
             .map(|obj| !obj.is_empty())
             .unwrap_or(false);
-        
+
         if !env_is_valid {
             return ApiResponse::error("渠道配置异常：env 为空，无法切换".to_string());
         }
-        
+
         // 覆写 env
         target_obj.insert("env".to_string(), env.unwrap().clone());
-        
+
         // 覆写 balanceApi（如果源文件有则覆写，没有则移除）
         if let Some(balance_api) = source_json.get("balanceApi") {
             target_obj.insert("balanceApi".to_string(), balance_api.clone());
@@ -225,13 +238,13 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
             target_obj.remove("balanceApi");
         }
     }
-    
+
     // 写入合并后的配置
     let merged_content = match serde_json::to_string_pretty(&target_json) {
         Ok(json) => json,
         Err(e) => return ApiResponse::error(e.to_string()),
     };
-    
+
     match fs::write(&target_path, merged_content) {
         Ok(_) => ApiResponse::success(),
         Err(e) => ApiResponse::error(e.to_string()),
@@ -255,8 +268,8 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[cfg(target_os = "windows")]
 fn command_exists(cmd: &str) -> bool {
-    use std::process::Command;
     use std::os::windows::process::CommandExt;
+    use std::process::Command;
     Command::new("where")
         .arg(cmd)
         .creation_flags(CREATE_NO_WINDOW)
@@ -278,7 +291,11 @@ fn open_terminal(command: &str, dir: &str) -> ApiResponse<()> {
         };
 
         // 检查是否有 pwsh (PowerShell 7)，没有则使用 powershell
-        let shell = if command_exists("pwsh") { "pwsh" } else { "powershell" };
+        let shell = if command_exists("pwsh") {
+            "pwsh"
+        } else {
+            "powershell"
+        };
 
         // 优先尝试 Windows Terminal，失败则回退到直接启动 PowerShell
         if let Some(result) = try_launch_with_wt(&work_dir, shell, command) {
@@ -287,7 +304,11 @@ fn open_terminal(command: &str, dir: &str) -> ApiResponse<()> {
 
         // 回退方案：直接启动 PowerShell 窗口
         let result = Command::new(shell)
-            .args(["-NoExit", "-Command", &format!("cd '{}'; {}", work_dir, command)])
+            .args([
+                "-NoExit",
+                "-Command",
+                &format!("cd '{}'; {}", work_dir, command),
+            ])
             .spawn()
             .map(|_| ());
 
@@ -305,8 +326,8 @@ fn open_terminal(command: &str, dir: &str) -> ApiResponse<()> {
 
 #[cfg(target_os = "windows")]
 fn try_launch_with_wt(dir: &str, shell: &str, command: &str) -> Option<ApiResponse<()>> {
-    use std::process::Command;
     use std::os::windows::process::CommandExt;
+    use std::process::Command;
 
     // 处理路径：移除末尾的反斜杠，防止与后续的引号组合成转义字符 (例如 "D:\" -> "D:")
     let clean_dir = dir.trim_end_matches('\\');
@@ -325,35 +346,37 @@ fn try_launch_with_wt(dir: &str, shell: &str, command: &str) -> Option<ApiRespon
     {
         // 检查 PowerShell 命令本身的执行状态
         if output.status.success() {
-             return Some(ApiResponse::success());
+            return Some(ApiResponse::success());
         }
     }
 
     None
 }
 
-fn read_channels(config_path: &str) -> Result<HashMap<String, ChannelConfig>, Box<dyn std::error::Error>> {
+fn read_channels(
+    config_path: &str,
+) -> Result<HashMap<String, ChannelConfig>, Box<dyn std::error::Error>> {
     let path = Path::new(config_path);
-    
+
     if !path.exists() {
         return Ok(HashMap::new());
     }
-    
+
     let entries = fs::read_dir(path)?;
     let mut channels = HashMap::new();
-    
+
     for entry in entries {
         let entry = entry?;
         let file_name = entry.file_name();
         let file_name_str = file_name.to_string_lossy();
-        
+
         if file_name_str.starts_with("settings-") && file_name_str.ends_with(".json") {
             let channel_name = file_name_str
                 .strip_prefix("settings-")
                 .and_then(|s| s.strip_suffix(".json"))
                 .unwrap_or("")
                 .to_string();
-            
+
             if let Ok(content) = fs::read_to_string(entry.path()) {
                 if let Ok(mut config) = serde_json::from_str::<ChannelConfig>(&content) {
                     // 过滤 env 为空的无效渠道
@@ -373,7 +396,7 @@ fn read_channels(config_path: &str) -> Result<HashMap<String, ChannelConfig>, Bo
             }
         }
     }
-    
+
     Ok(channels)
 }
 
@@ -399,16 +422,19 @@ fn get_current_factory_api_key() -> ApiResponse<String> {
             };
         }
     }
-    
+
     // 如果进程环境变量为空，尝试从注册表读取用户环境变量
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
         use std::os::windows::process::CommandExt;
+        use std::process::Command;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        
+
         if let Ok(output) = Command::new("powershell")
-            .args(&["-Command", "[Environment]::GetEnvironmentVariable('FACTORY_API_KEY', 'User')"])
+            .args(&[
+                "-Command",
+                "[Environment]::GetEnvironmentVariable('FACTORY_API_KEY', 'User')",
+            ])
             .creation_flags(CREATE_NO_WINDOW)
             .output()
         {
@@ -428,7 +454,7 @@ fn get_current_factory_api_key() -> ApiResponse<String> {
             }
         }
     }
-    
+
     ApiResponse {
         success: true,
         error: None,
@@ -441,7 +467,7 @@ fn get_current_factory_api_key() -> ApiResponse<String> {
 #[tauri::command]
 async fn get_droid_channels(config_path: String) -> ApiResponse<Vec<DroidChannel>> {
     let key_file_path = Path::new(&config_path).join("key.txt");
-    
+
     if !key_file_path.exists() {
         return ApiResponse {
             success: true,
@@ -451,7 +477,7 @@ async fn get_droid_channels(config_path: String) -> ApiResponse<Vec<DroidChannel
             data: Some(vec![]),
         };
     }
-    
+
     match fs::read_to_string(&key_file_path) {
         Ok(content) => {
             let channels: Vec<DroidChannel> = content
@@ -471,7 +497,7 @@ async fn get_droid_channels(config_path: String) -> ApiResponse<Vec<DroidChannel
                     }
                 })
                 .collect();
-            
+
             ApiResponse {
                 success: true,
                 error: None,
@@ -479,7 +505,7 @@ async fn get_droid_channels(config_path: String) -> ApiResponse<Vec<DroidChannel
                 config: None,
                 data: Some(channels),
             }
-        },
+        }
         Err(e) => ApiResponse {
             success: false,
             error: Some(e.to_string()),
@@ -498,15 +524,15 @@ async fn switch_droid_channel(api_key: String) -> ApiResponse<()> {
     // 设置用户级别环境变量（写入注册表，新终端可用）
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
         use std::os::windows::process::CommandExt;
+        use std::process::Command;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        
+
         let ps_command = format!(
             "[Environment]::SetEnvironmentVariable('FACTORY_API_KEY', '{}', 'User')",
             api_key.replace("'", "''")
         );
-        
+
         if let Err(e) = Command::new("powershell")
             .args(&["-Command", &ps_command])
             .creation_flags(CREATE_NO_WINDOW)
@@ -527,7 +553,7 @@ async fn save_droid_channel(
     old_name: String,
 ) -> ApiResponse<()> {
     let key_file_path = Path::new(&config_path).join("key.txt");
-    
+
     let mut channels: Vec<DroidChannel> = if key_file_path.exists() {
         match fs::read_to_string(&key_file_path) {
             Ok(content) => content
@@ -551,7 +577,7 @@ async fn save_droid_channel(
     } else {
         vec![]
     };
-    
+
     if !old_name.is_empty() {
         // 编辑模式：在原位置更新
         if let Some(pos) = channels.iter().position(|c| c.name == old_name) {
@@ -571,14 +597,14 @@ async fn save_droid_channel(
         // 在顶部插入新渠道
         channels.insert(0, DroidChannel { name, api_key });
     }
-    
+
     // 写回文件
     let content: String = channels
         .iter()
         .map(|c| format!("{} {}", c.name, c.api_key))
         .collect::<Vec<_>>()
         .join("\n");
-    
+
     match fs::write(&key_file_path, content) {
         Ok(_) => ApiResponse::success(),
         Err(e) => ApiResponse::error(e.to_string()),
@@ -588,11 +614,11 @@ async fn save_droid_channel(
 #[tauri::command]
 async fn delete_droid_channel(config_path: String, name: String) -> ApiResponse<()> {
     let key_file_path = Path::new(&config_path).join("key.txt");
-    
+
     if !key_file_path.exists() {
         return ApiResponse::error("配置文件不存在".to_string());
     }
-    
+
     match fs::read_to_string(&key_file_path) {
         Ok(content) => {
             let channels: Vec<String> = content
@@ -604,350 +630,16 @@ async fn delete_droid_channel(config_path: String, name: String) -> ApiResponse<
                 })
                 .map(|s| s.to_string())
                 .collect();
-            
+
             let new_content = channels.join("\n");
-            
+
             match fs::write(&key_file_path, new_content) {
                 Ok(_) => ApiResponse::success(),
                 Err(e) => ApiResponse::error(e.to_string()),
             }
-        },
-        Err(e) => ApiResponse::error(e.to_string()),
-    }
-}
-
-// ==================== Codex 渠道管理 ====================
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct CodexChannel {
-    name: String,
-    baseurl: String,
-    apikey: String,
-    model: String,
-}
-
-fn parse_codex_channels(content: &str) -> Vec<CodexChannel> {
-    content
-        .split("=========")
-        .filter_map(|block| {
-            let block = block.trim();
-            if block.is_empty() {
-                return None;
-            }
-            let mut name = String::new();
-            let mut baseurl = String::new();
-            let mut apikey = String::new();
-            let mut model = String::new();
-            for line in block.lines() {
-                let line = line.trim();
-                if let Some(val) = line.strip_prefix("name=") {
-                    name = val.trim().to_string();
-                } else if let Some(val) = line.strip_prefix("baseurl=") {
-                    baseurl = val.trim().to_string();
-                } else if let Some(val) = line.strip_prefix("apikey=") {
-                    apikey = val.trim().to_string();
-                } else if let Some(val) = line.strip_prefix("model=") {
-                    model = val.trim().to_string();
-                }
-            }
-            if baseurl.is_empty() && apikey.is_empty() && model.is_empty() {
-                None
-            } else {
-                Some(CodexChannel { name, baseurl, apikey, model })
-            }
-        })
-        .collect()
-}
-
-fn serialize_codex_channels(channels: &[CodexChannel]) -> String {
-    channels
-        .iter()
-        .map(|c| format!("name={}\nbaseurl={}\napikey={}\nmodel={}", c.name, c.baseurl, c.apikey, c.model))
-        .collect::<Vec<_>>()
-        .join("\n=========\n")
-}
-
-#[tauri::command]
-async fn get_codex_channels(codex_config_path: String) -> ApiResponse<Vec<CodexChannel>> {
-    let file_path = Path::new(&codex_config_path).join("url2key.txt");
-
-    if !file_path.exists() {
-        return ApiResponse {
-            success: true,
-            error: None,
-            channels: None,
-            config: None,
-            data: Some(vec![]),
-        };
-    }
-
-    match fs::read_to_string(&file_path) {
-        Ok(content) => ApiResponse {
-            success: true,
-            error: None,
-            channels: None,
-            config: None,
-            data: Some(parse_codex_channels(&content)),
-        },
-        Err(e) => ApiResponse {
-            success: false,
-            error: Some(e.to_string()),
-            channels: None,
-            config: None,
-            data: None,
-        },
-    }
-}
-
-#[tauri::command]
-async fn save_codex_channel(
-    codex_config_path: String,
-    name: String,
-    baseurl: String,
-    apikey: String,
-    model: String,
-    edit_index: i32,
-) -> ApiResponse<()> {
-    let dir_path = Path::new(&codex_config_path);
-    if !dir_path.exists() {
-        if let Err(e) = fs::create_dir_all(dir_path) {
-            return ApiResponse::error(format!("创建目录失败: {}", e));
-        }
-    }
-
-    let file_path = dir_path.join("url2key.txt");
-    let mut channel_list: Vec<CodexChannel> = if file_path.exists() {
-        match fs::read_to_string(&file_path) {
-            Ok(content) => parse_codex_channels(&content),
-            Err(_) => vec![],
-        }
-    } else {
-        vec![]
-    };
-
-    let new_channel = CodexChannel { name, baseurl, apikey, model };
-
-    if edit_index >= 0 {
-        let idx = edit_index as usize;
-        if idx < channel_list.len() {
-            channel_list[idx] = new_channel;
-        } else {
-            return ApiResponse::error("索引越界".to_string());
-        }
-    } else {
-        channel_list.insert(0, new_channel);
-    }
-
-    let content = serialize_codex_channels(&channel_list);
-    match fs::write(&file_path, content) {
-        Ok(_) => ApiResponse::success(),
-        Err(e) => ApiResponse::error(e.to_string()),
-    }
-}
-
-#[tauri::command]
-async fn delete_codex_channel(
-    codex_config_path: String,
-    delete_index: usize,
-) -> ApiResponse<()> {
-    let file_path = Path::new(&codex_config_path).join("url2key.txt");
-
-    if !file_path.exists() {
-        return ApiResponse::error("配置文件不存在".to_string());
-    }
-
-    match fs::read_to_string(&file_path) {
-        Ok(content) => {
-            let mut channel_list = parse_codex_channels(&content);
-            if delete_index >= channel_list.len() {
-                return ApiResponse::error("索引越界".to_string());
-            }
-            channel_list.remove(delete_index);
-            let new_content = serialize_codex_channels(&channel_list);
-            match fs::write(&file_path, new_content) {
-                Ok(_) => ApiResponse::success(),
-                Err(e) => ApiResponse::error(e.to_string()),
-            }
         }
         Err(e) => ApiResponse::error(e.to_string()),
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct CodexActiveInfo {
-    api_key: String,
-    base_url: String,
-    model: String,
-    model_provider: String,
-}
-
-#[tauri::command]
-fn get_current_codex_env(codex_config_path: String) -> ApiResponse<CodexActiveInfo> {
-    let dir = Path::new(&codex_config_path);
-
-    let mut base_url = String::new();
-    let mut model = String::new();
-    let mut model_provider = String::new();
-    let mut api_key = String::new();
-
-    // 读取 config.toml
-    let config_path = dir.join("config.toml");
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            for line in content.lines() {
-                let trimmed = line.trim();
-                let mut parts = trimmed.splitn(2, '=');
-                let key = parts.next().unwrap_or("").trim();
-                if let Some(val_part) = parts.next() {
-                    let val = val_part.trim().trim_matches('"');
-                    match key {
-                        "model" => model = val.to_string(),
-                        "base_url" => base_url = val.to_string(),
-                        "model_provider" => model_provider = val.to_string(),
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
-
-    // 读取 auth.json
-    let auth_path = dir.join("auth.json");
-    if auth_path.exists() {
-        if let Ok(content) = fs::read_to_string(&auth_path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(key) = json.get("OPENAI_API_KEY").and_then(|v| v.as_str()) {
-                    api_key = key.to_string();
-                }
-            }
-        }
-    }
-
-    ApiResponse {
-        success: true,
-        error: None,
-        channels: None,
-        config: None,
-        data: Some(CodexActiveInfo { api_key, base_url, model, model_provider }),
-    }
-}
-
-#[tauri::command]
-async fn switch_codex_channel(
-    codex_config_path: String,
-    name: String,
-    api_key: String,
-    base_url: String,
-    model: String,
-) -> ApiResponse<()> {
-    let dir = Path::new(&codex_config_path);
-    let config_path = dir.join("config.toml");
-    let auth_path_check = dir.join("auth.json");
-
-    if !config_path.exists() || !auth_path_check.exists() {
-        return ApiResponse::error("未找到配置文件，请检查Codex路径配置".to_string());
-    }
-
-    // 写入 config.toml：保留其他行，只更新 model、base_url、model_provider
-    let existing_content = if config_path.exists() {
-        fs::read_to_string(&config_path).unwrap_or_default()
-    } else {
-        String::new()
-    };
-
-    let mut found_model = false;
-    let mut found_base_url = false;
-    let mut found_model_provider = false;
-    let mut found_section = false;
-    let mut found_name = false;
-    let mut new_lines: Vec<String> = Vec::new();
-
-    for line in existing_content.lines() {
-        let trimmed = line.trim();
-
-        // 替换 [model_providers.xxxxx] 为 [model_providers.name]
-        if trimmed.starts_with("[model_providers.") {
-            new_lines.push(format!("[model_providers.{}]", name));
-            found_section = true;
-            continue;
-        }
-
-        let key = trimmed.split('=').next().unwrap_or("").trim();
-        if key == "model" {
-            if !found_model {
-                new_lines.push(format!("model = \"{}\"", model));
-                found_model = true;
-            }
-        } else if key == "base_url" {
-            if !found_base_url {
-                new_lines.push(format!("base_url = \"{}\"", base_url));
-                found_base_url = true;
-            }
-        } else if key == "model_provider" {
-            if !found_model_provider {
-                new_lines.push(format!("model_provider = \"{}\"", name));
-                found_model_provider = true;
-            }
-        } else if key == "name" {
-            if !found_name {
-                new_lines.push(format!("name = \"{}\"", name));
-                found_name = true;
-            }
-        } else {
-            new_lines.push(line.to_string());
-        }
-    }
-
-    if !found_model {
-        new_lines.push(format!("model = \"{}\"", model));
-    }
-    if !found_base_url {
-        new_lines.push(format!("base_url = \"{}\"", base_url));
-    }
-    if !found_model_provider {
-        new_lines.push(format!("model_provider = \"{}\"", name));
-    }
-    if !found_section {
-        new_lines.push(format!("[model_providers.{}]", name));
-    }
-    if !found_name {
-        new_lines.push(format!("name = \"{}\"", name));
-    }
-
-    if let Err(e) = fs::write(&config_path, new_lines.join("\n")) {
-        return ApiResponse::error(format!("写入 config.toml 失败: {}", e));
-    }
-
-    // 写入 auth.json：保留其他字段，只更新 OPENAI_API_KEY
-    let auth_path = dir.join("auth.json");
-    let mut auth_json: serde_json::Value = if auth_path.exists() {
-        match fs::read_to_string(&auth_path) {
-            Ok(content) => serde_json::from_str(&content).unwrap_or(serde_json::json!({})),
-            Err(_) => serde_json::json!({}),
-        }
-    } else {
-        serde_json::json!({})
-    };
-
-    if let Some(obj) = auth_json.as_object_mut() {
-        obj.insert("OPENAI_API_KEY".to_string(), serde_json::json!(api_key));
-    }
-
-    match serde_json::to_string_pretty(&auth_json) {
-        Ok(json_str) => {
-            if let Err(e) = fs::write(&auth_path, json_str) {
-                return ApiResponse::error(format!("写入 auth.json 失败: {}", e));
-            }
-        }
-        Err(e) => return ApiResponse::error(format!("序列化 auth.json 失败: {}", e)),
-    }
-
-    ApiResponse::success()
-}
-
-#[tauri::command(rename_all = "camelCase")]
-async fn launch_codex(terminal_dir: String) -> ApiResponse<()> {
-    open_terminal("codex", &terminal_dir)
 }
 
 fn main() {
@@ -976,12 +668,12 @@ fn main() {
             delete_droid_channel,
             launch_droid,
             // Codex 渠道管理
-            get_codex_channels,
-            save_codex_channel,
-            delete_codex_channel,
-            get_current_codex_env,
-            switch_codex_channel,
-            launch_codex,
+            codex::get_codex_channels,
+            codex::save_codex_channel,
+            codex::delete_codex_channel,
+            codex::get_current_codex_env,
+            codex::switch_codex_channel,
+            codex::launch_codex,
             // StatusLine 管理
             get_statusline_files,
             read_statusline_file,
@@ -1130,7 +822,8 @@ async fn get_statusline_files() -> ApiResponse<Vec<StatuslineFile>> {
             continue;
         }
 
-        let file_name = path.file_name()
+        let file_name = path
+            .file_name()
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_string();
@@ -1144,7 +837,8 @@ async fn get_statusline_files() -> ApiResponse<Vec<StatuslineFile>> {
             .unwrap_or(&file_name)
             .to_string();
 
-        let modified = entry.metadata()
+        let modified = entry
+            .metadata()
             .and_then(|m| m.modified())
             .ok()
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
@@ -1345,17 +1039,18 @@ async fn apply_statusline_to_settings(file_name: String) -> ApiResponse<()> {
     let ps1_full_path = claude_dir.join("statusline").join(&file_name);
     // 路径不需要双重转义，serde_json 会自动处理
     let ps1_path_str = ps1_full_path.to_string_lossy().to_string();
-    let command = format!("powershell -NoProfile -ExecutionPolicy Bypass -File {}", ps1_path_str);
+    let command = format!(
+        "powershell -NoProfile -ExecutionPolicy Bypass -File {}",
+        ps1_path_str
+    );
 
     let mut settings_json: serde_json::Value = if settings_path.exists() {
         match fs::read_to_string(&settings_path) {
-            Ok(content) => {
-                match serde_json::from_str(&content) {
-                    Ok(v) => v,
-                    Err(_) => serde_json::json!({})
-                }
-            }
-            Err(_) => serde_json::json!({})
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(v) => v,
+                Err(_) => serde_json::json!({}),
+            },
+            Err(_) => serde_json::json!({}),
         }
     } else {
         serde_json::json!({})
@@ -1363,10 +1058,13 @@ async fn apply_statusline_to_settings(file_name: String) -> ApiResponse<()> {
 
     if let Some(obj) = settings_json.as_object_mut() {
         // 使用正确的对象格式
-        obj.insert("statusLine".to_string(), serde_json::json!({
-            "type": "command",
-            "command": command
-        }));
+        obj.insert(
+            "statusLine".to_string(),
+            serde_json::json!({
+                "type": "command",
+                "command": command
+            }),
+        );
     }
 
     let updated_content = match serde_json::to_string_pretty(&settings_json) {

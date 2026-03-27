@@ -254,13 +254,10 @@ class TauriAPI {
         return await this.safeInvoke('get_current_codex_env', { codexConfigPath });
     }
 
-    async switchCodexChannel(params) {
+    async switchCodexChannel(codexConfigPath, channelName) {
         return await this.safeInvoke('switch_codex_channel', {
-            codexConfigPath: params.codexConfigPath,
-            name: params.name,
-            apiKey: params.apiKey,
-            baseUrl: params.baseUrl,
-            model: params.model
+            codexConfigPath,
+            channelName
         });
     }
 

@@ -1,8 +1,8 @@
 /**
  * Codex 渠道管理功能模块
  * 负责 Codex 渠道的 CRUD 操作、列表渲染和状态管理
- * 渠道数据存储在 codexConfigPath/url2key.txt 中，多个渠道用 ========= 分隔
- * 通过 OPENAI_API_KEY / OPENAI_BASE_URL 环境变量判断激活状态和执行切换
+ * 渠道数据存储在 codexConfigPath/channels.json 中
+ * 通过 auth.json 中的 OPENAI_API_KEY 判断激活状态和执行切换
  */
 class CodexManager {
     constructor() {
@@ -10,7 +10,6 @@ class CodexManager {
         this.codexCount = null;
         this.codexChannels = [];
         this.currentApiKey = '';
-        this.currentBaseUrl = '';
         this.editingIndex = -1;
         this.modal = null;
         this.nameInput = null;
@@ -65,10 +64,8 @@ class CodexManager {
             const envResult = await api.getCurrentCodexEnv(state.codexConfigPath);
             if (envResult.success && envResult.data) {
                 this.currentApiKey = envResult.data.api_key || '';
-                this.currentBaseUrl = envResult.data.base_url || '';
             } else {
                 this.currentApiKey = '';
-                this.currentBaseUrl = '';
             }
 
             const result = await api.getCodexChannels(state.codexConfigPath);
@@ -80,23 +77,51 @@ class CodexManager {
                 return;
             }
 
-            this.codexChannels = result.data || [];
+            this.codexChannels = (result.data || []).map(channel => ({
+                ...channel,
+                baseurl: this.normalizeBaseUrl(channel.baseurl || '')
+            }));
             this.renderChannels();
         } catch (error) {
             ErrorHandler.handle(error, 'Load Codex channels');
+            this.currentApiKey = '';
             this.codexChannels = [];
             this.renderChannels();
         }
     }
 
     render() {
-        this.loadChannels();
+        return this.loadChannels();
+    }
+
+    normalizeBaseUrl(baseurl) {
+        const raw = String(baseurl || '').trim();
+        if (!raw) {
+            return '';
+        }
+
+        try {
+            const url = new URL(raw);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                return raw;
+            }
+
+            url.hash = '';
+            const trimmedPath = url.pathname.replace(/\/+$/, '');
+            url.pathname = trimmedPath || '/';
+
+            let normalized = url.toString();
+            if (!url.search && url.pathname === '/' && normalized.endsWith('/')) {
+                normalized = normalized.slice(0, -1);
+            }
+            return normalized;
+        } catch {
+            return raw;
+        }
     }
 
     isChannelActive(channel) {
-        return this.currentApiKey
-            && channel.apikey === this.currentApiKey
-            && channel.baseurl === this.currentBaseUrl;
+        return !!this.currentApiKey && channel.apikey === this.currentApiKey;
     }
 
     renderChannels() {
@@ -177,30 +202,24 @@ class CodexManager {
     }
 
     async switchChannel(channel) {
+        const previousApiKey = this.currentApiKey;
+
         this.currentApiKey = channel.apikey;
-        this.currentBaseUrl = channel.baseurl;
         this.renderChannels();
 
         try {
-            const result = await api.switchCodexChannel({
-                codexConfigPath: state.codexConfigPath,
-                name: channel.name || '',
-                apiKey: channel.apikey,
-                baseUrl: channel.baseurl,
-                model: channel.model || ''
-            });
+            const result = await api.switchCodexChannel(state.codexConfigPath, channel.name || '');
 
             if (result.success) {
                 toast.show(i18n.t('codex.messages.channelSwitched'));
+                await this.loadChannels();
             } else {
-                this.currentApiKey = '';
-                this.currentBaseUrl = '';
+                this.currentApiKey = previousApiKey;
                 this.renderChannels();
                 ErrorHandler.showError(result.error, '切换失败');
             }
         } catch (error) {
-            this.currentApiKey = '';
-            this.currentBaseUrl = '';
+            this.currentApiKey = previousApiKey;
             this.renderChannels();
             ErrorHandler.showError(error, '切换失败');
         }
@@ -267,8 +286,28 @@ class CodexManager {
             return;
         }
 
+        const duplicateName = this.codexChannels.some((channel, index) =>
+            channel.name === name && index !== this.editingIndex
+        );
+        if (duplicateName) {
+            toast.show(i18n.t('codex.messages.errorNameDuplicate'));
+            return;
+        }
+
         if (!baseurl) {
             toast.show(i18n.t('codex.messages.errorBaseurlRequired'));
+            return;
+        }
+
+        let normalizedBaseUrl = '';
+        try {
+            const parsedUrl = new URL(baseurl);
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                throw new Error('invalid protocol');
+            }
+            normalizedBaseUrl = this.normalizeBaseUrl(baseurl);
+        } catch {
+            toast.show(i18n.t('codex.messages.errorBaseurlInvalid'));
             return;
         }
 
@@ -286,7 +325,7 @@ class CodexManager {
             const result = await api.saveCodexChannel({
                 codexConfigPath: state.codexConfigPath,
                 name: name,
-                baseurl: baseurl,
+                baseurl: normalizedBaseUrl,
                 apikey: apikey,
                 model: model,
                 editIndex: this.editingIndex

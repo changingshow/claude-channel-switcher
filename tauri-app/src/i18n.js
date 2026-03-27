@@ -134,7 +134,9 @@ const translations = {
                 channelsRefreshed: 'Codex 渠道列表已刷新',
                 errorNameRequired: '请输入渠道名称',
                 errorNameInvalid: '渠道名称仅支持英文字母、数字、-、_，最多18位',
+                errorNameDuplicate: '渠道名称已存在，请使用其他名称',
                 errorBaseurlRequired: '请输入 Base URL',
+                errorBaseurlInvalid: 'Base URL 格式无效，请输入 http:// 或 https:// 地址',
                 errorApikeyRequired: '请输入 API Key',
                 errorModelRequired: '请输入模型名称',
                 confirmDelete: '确定要删除该 Codex 渠道吗？'
@@ -447,7 +449,9 @@ const translations = {
                 channelsRefreshed: 'Codex channel list refreshed',
                 errorNameRequired: 'Channel name is required',
                 errorNameInvalid: 'Only letters, digits, - and _ allowed, max 18 chars',
+                errorNameDuplicate: 'Channel name already exists, please use another name',
                 errorBaseurlRequired: 'Base URL is required',
+                errorBaseurlInvalid: 'Base URL must be a valid http:// or https:// URL',
                 errorApikeyRequired: 'API Key is required',
                 errorModelRequired: 'Model name is required',
                 confirmDelete: 'Are you sure you want to delete this Codex channel?'
