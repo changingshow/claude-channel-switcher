@@ -24,6 +24,8 @@ struct BalanceApi {
 struct ChannelConfig {
     #[serde(default)]
     env: HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    model: Option<String>,
     #[serde(
         rename = "balanceApi",
         skip_serializing_if = "Option::is_none",
@@ -118,7 +120,7 @@ async fn save_channel(
     channel_name: String,
     token: String,
     url: String,
-    _model: String,
+    model: String,
     old_name: String,
     balance_url: String,
     balance_method: String,
@@ -155,6 +157,11 @@ async fn save_channel(
 
     let config = ChannelConfig {
         env,
+        model: if model.trim().is_empty() {
+            None
+        } else {
+            Some(model.trim().to_string())
+        },
         balance_api,
         ctime: None,
     };
@@ -236,6 +243,13 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
             target_obj.insert("balanceApi".to_string(), balance_api.clone());
         } else {
             target_obj.remove("balanceApi");
+        }
+
+        // 同步 model（如果源文件有则覆写，没有则移除）
+        if let Some(model) = source_json.get("model") {
+            target_obj.insert("model".to_string(), model.clone());
+        } else {
+            target_obj.remove("model");
         }
     }
 
@@ -639,6 +653,124 @@ async fn delete_droid_channel(config_path: String, name: String) -> ApiResponse<
             }
         }
         Err(e) => ApiResponse::error(e.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod claude_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_TEST_ID: AtomicU64 = AtomicU64::new(1);
+
+    fn create_temp_dir(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "claude-channel-switcher-claude-{}-{}",
+            label,
+            NEXT_TEST_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("failed to create temp dir");
+        dir
+    }
+
+    #[test]
+    fn save_channel_persists_model_field() {
+        let dir = create_temp_dir("save");
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+
+        let result = runtime.block_on(save_channel(
+            dir.to_string_lossy().to_string(),
+            "main".to_string(),
+            "test-token".to_string(),
+            "https://api.example.com".to_string(),
+            "claude-sonnet-test".to_string(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+        ));
+
+        assert!(result.success);
+
+        let saved: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(dir.join("settings-main.json")).unwrap())
+                .unwrap();
+        assert_eq!(
+            saved["model"].as_str(),
+            Some("claude-sonnet-test")
+        );
+        assert_eq!(
+            saved["env"]["ANTHROPIC_AUTH_TOKEN"].as_str(),
+            Some("test-token")
+        );
+        assert_eq!(
+            saved["env"]["ANTHROPIC_BASE_URL"].as_str(),
+            Some("https://api.example.com")
+        );
+    }
+
+    #[test]
+    fn switch_channel_applies_model_to_settings_json() {
+        let dir = create_temp_dir("switch");
+        let channel_file = dir.join("settings-main.json");
+        let settings_file = dir.join("settings.json");
+
+        fs::write(
+            &channel_file,
+            serde_json::to_string_pretty(&serde_json::json!({
+                "env": {
+                    "ANTHROPIC_AUTH_TOKEN": "new-token",
+                    "ANTHROPIC_BASE_URL": "https://api.example.com"
+                },
+                "model": "claude-sonnet-test",
+                "balanceApi": {
+                    "url": "https://balance.example.com?key={key}",
+                    "method": "GET",
+                    "field": "balance"
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        fs::write(
+            &settings_file,
+            serde_json::to_string_pretty(&serde_json::json!({
+                "foo": "keep",
+                "model": "old-model",
+                "env": {
+                    "ANTHROPIC_AUTH_TOKEN": "old-token"
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = runtime.block_on(switch_channel(
+            dir.to_string_lossy().to_string(),
+            "main".to_string(),
+        ));
+
+        assert!(result.success);
+
+        let switched: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&settings_file).unwrap()).unwrap();
+        assert_eq!(switched["foo"].as_str(), Some("keep"));
+        assert_eq!(switched["model"].as_str(), Some("claude-sonnet-test"));
+        assert_eq!(
+            switched["env"]["ANTHROPIC_AUTH_TOKEN"].as_str(),
+            Some("new-token")
+        );
+        assert_eq!(
+            switched["env"]["ANTHROPIC_BASE_URL"].as_str(),
+            Some("https://api.example.com")
+        );
+        assert_eq!(
+            switched["balanceApi"]["field"].as_str(),
+            Some("balance")
+        );
     }
 }
 

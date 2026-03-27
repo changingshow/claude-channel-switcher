@@ -35,6 +35,15 @@ async function initializeApp() {
     // 初始化状态
     state.initConfigPath(homeDirectory);
 
+    // 读取运行时应用版本，避免在前端重复维护一份静态版本号
+    try {
+        const appVersion = await api.getAppVersion();
+        state.appVersion = appVersion ? `v${appVersion}` : '';
+    } catch (e) {
+        console.error('Failed to get app version:', e);
+        state.appVersion = '';
+    }
+
     // 初始化 UI
     i18n.setLanguage(state.language);
     theme.applyTheme(state.theme);

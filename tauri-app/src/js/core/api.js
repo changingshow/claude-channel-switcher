@@ -123,6 +123,14 @@ class TauriAPI {
     }
 
     /**
+     * 获取应用版本号
+     * @returns {Promise<string>} 应用版本号
+     */
+    async getAppVersion() {
+        return await this.safeInvoke('plugin:app|version');
+    }
+
+    /**
      * 最小化窗口
      * @returns {Promise<void>}
      */

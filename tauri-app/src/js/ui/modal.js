@@ -199,11 +199,17 @@ class ModalManager {
         this.channelNameInput.placeholder = i18n.t('modal.fields.namePlaceholder');
         this.channelTokenInput.placeholder = i18n.t('modal.fields.tokenPlaceholder');
         this.channelUrlInput.placeholder = i18n.t('modal.fields.urlPlaceholder');
+        this.channelModelInput.placeholder = i18n.t('modal.fields.modelPlaceholder');
+        const modelHelp = document.getElementById('channel-model-help');
+        if (modelHelp) {
+            modelHelp.textContent = i18n.t('modal.fields.modelHelp');
+        }
 
         const labels = document.querySelectorAll('.modal-body .form-label');
         if (labels[0]) labels[0].textContent = i18n.t('modal.fields.name');
         if (labels[1]) labels[1].textContent = i18n.t('modal.fields.token');
         if (labels[2]) labels[2].textContent = i18n.t('modal.fields.url');
+        if (labels[3]) labels[3].textContent = i18n.t('modal.fields.model');
 
         const closeBtn = document.getElementById('modal-close-btn');
         if (closeBtn) {

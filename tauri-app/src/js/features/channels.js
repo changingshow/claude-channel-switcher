@@ -3,11 +3,13 @@
  * 负责渠道的 CRUD 操作、列表渲染和状态管理
  */
 const REFRESH_ANIMATION_DURATION = 300;
+const CHANNEL_SWITCHING_MIN_DURATION = 300;
 
 class ChannelManager {
     constructor() {
         this.channelsList = null;
         this.channelCount = null;
+        this.switchingChannelName = null;
         this.init();
     }
 
@@ -110,9 +112,11 @@ class ChannelManager {
         });
 
         const fragment = document.createDocumentFragment();
+        const isAnySwitching = !!this.switchingChannelName;
         sortedChannels.forEach(([name]) => {
             const isActive = name === state.activeChannelName;
-            const card = this.createChannelCard(name, isActive);
+            const isSwitching = name === this.switchingChannelName;
+            const card = this.createChannelCard(name, isActive, isSwitching, isAnySwitching);
             fragment.appendChild(card);
         });
 
@@ -124,17 +128,38 @@ class ChannelManager {
      * 创建渠道卡片
      * @param {string} name - 渠道名称
      * @param {boolean} isActive - 是否激活
+     * @param {boolean} isSwitching - 是否切换中
+     * @param {boolean} isAnySwitching - 是否有任一卡片在切换中
      * @returns {HTMLElement} 渠道卡片元素
      */
-    createChannelCard(name, isActive) {
+    createChannelCard(name, isActive, isSwitching, isAnySwitching) {
         const card = document.createElement('div');
-        card.className = `channel-card${isActive ? ' active' : ''}`;
+        card.className = `channel-card${isActive ? ' active' : ''}${isSwitching ? ' switching' : ''}`;
+        card.setAttribute('aria-busy', isSwitching ? 'true' : 'false');
 
         const config = state.channels[name];
         const hasBalanceApi = config?.balanceApi?.url;
 
-        const statusText = isActive ? i18n.t('channels.status.active') : i18n.t('channels.status.inactive');
-        const statusIndicator = `<span class="status-indicator ${isActive ? 'active' : ''}"></span> ${statusText}`;
+        let statusClass = '';
+        let statusText = i18n.t('channels.status.inactive');
+        if (isSwitching) {
+            statusClass = 'switching';
+            statusText = i18n.t('channels.status.switching');
+        } else if (isActive) {
+            statusClass = 'active';
+            statusText = i18n.t('channels.status.active');
+        }
+        const statusIndicator = `<span class="status-indicator ${statusClass}"></span> ${statusText}`;
+        const switchLabel = isSwitching
+            ? `⏳ ${i18n.t('channels.actions.switching')}`
+            : `⚡ ${i18n.t('channels.actions.switch')}`;
+        const actionsDisabled = isAnySwitching ? 'disabled' : '';
+        const switchingBadgeClass = hasBalanceApi
+            ? 'channel-switching-badge channel-switching-badge-offset'
+            : 'channel-switching-badge';
+        const switchingBadge = isSwitching
+            ? `<div class="${switchingBadgeClass}"><span class="channel-switching-spinner" aria-hidden="true"></span><span>${i18n.t('channels.actions.switching')}</span></div>`
+            : '';
 
         const balanceHtml = hasBalanceApi ? `
             <div class="channel-balance" data-channel="${DOMUtils.escapeHtml(name)}" title="${i18n.t('channels.balance.clickToQuery')}">
@@ -144,6 +169,7 @@ class ChannelManager {
         ` : '';
 
         card.innerHTML = `
+            ${switchingBadge}
             ${balanceHtml}
             <div class="channel-header">
                 <div class="channel-icon">📡</div>
@@ -154,13 +180,13 @@ class ChannelManager {
             </div>
             <div class="channel-actions">
                 ${isActive ? `<button class="btn btn-success btn-small launch-btn">🚀 ${i18n.t('channels.actions.launch')}</button>` : ''}
-                <button class="btn btn-primary btn-small switch-btn" ${isActive ? 'disabled' : ''}>⚡ ${i18n.t('channels.actions.switch')}</button>
-                <button class="btn btn-edit btn-small edit-btn">✏️ ${i18n.t('channels.actions.edit')}</button>
-                <button class="btn btn-danger btn-small delete-btn">🗑️ ${i18n.t('channels.actions.delete')}</button>
+                <button class="btn btn-primary btn-small switch-btn" ${isAnySwitching ? 'disabled' : ''}>${switchLabel}</button>
+                <button class="btn btn-edit btn-small edit-btn" ${actionsDisabled}>✏️ ${i18n.t('channels.actions.edit')}</button>
+                <button class="btn btn-danger btn-small delete-btn" ${actionsDisabled}>🗑️ ${i18n.t('channels.actions.delete')}</button>
             </div>
         `;
 
-        this.attachCardEventListeners(card, name, isActive);
+        this.attachCardEventListeners(card, name, isActive, isSwitching, isAnySwitching);
         return card;
     }
 
@@ -169,29 +195,43 @@ class ChannelManager {
      * @param {HTMLElement} card - 卡片元素
      * @param {string} name - 渠道名称
      * @param {boolean} isActive - 是否激活
+     * @param {boolean} isSwitching - 是否切换中
+     * @param {boolean} isAnySwitching - 是否有任一卡片在切换中
      */
-    attachCardEventListeners(card, name, isActive) {
+    attachCardEventListeners(card, name, isActive, isSwitching, isAnySwitching) {
         if (isActive) {
             const launchBtn = card.querySelector('.launch-btn');
-            launchBtn?.addEventListener('click', () => this.launchClaude(name));
+            if (!isAnySwitching) {
+                launchBtn?.addEventListener('click', () => this.launchClaude(name));
+            }
         }
 
         const editBtn = card.querySelector('.edit-btn');
-        editBtn?.addEventListener('click', () => this.editChannel(name));
+        if (!isAnySwitching) {
+            editBtn?.addEventListener('click', () => this.editChannel(name));
+        }
 
         const switchBtn = card.querySelector('.switch-btn');
-        if (!isActive) {
-            switchBtn?.addEventListener('click', () => this.switchChannel(name));
+        if (!isSwitching && !isAnySwitching) {
+            if (isActive) {
+                switchBtn?.addEventListener('click', () => this.notifyAlreadyActive(name));
+            } else {
+                switchBtn?.addEventListener('click', () => this.switchChannel(name));
+            }
         }
 
         const deleteBtn = card.querySelector('.delete-btn');
-        deleteBtn?.addEventListener('click', () => this.deleteChannel(name));
+        if (!isAnySwitching) {
+            deleteBtn?.addEventListener('click', () => this.deleteChannel(name));
+        }
 
         const balanceEl = card.querySelector('.channel-balance');
-        balanceEl?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.queryBalance(name, balanceEl);
-        });
+        if (!isAnySwitching) {
+            balanceEl?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.queryBalance(name, balanceEl);
+            });
+        }
     }
 
     /**
@@ -207,18 +247,48 @@ class ChannelManager {
      * @param {string} name - 渠道名称
      */
     async switchChannel(name) {
+        if (this.switchingChannelName) {
+            return;
+        }
+
+        const switchStartedAt = Date.now();
+        this.switchingChannelName = name;
+        this.renderChannels();
+
         try {
             const result = await api.switchChannel(state.configPath, name);
+            await this.ensureSwitchingVisible(switchStartedAt);
 
             if (result.success) {
+                this.switchingChannelName = null;
                 toast.show(i18n.t('messages.channelSwitched', { name }));
                 await this.loadChannels();
             } else {
+                this.switchingChannelName = null;
+                this.renderChannels();
                 ErrorHandler.showError(result.error, '切换失败');
             }
         } catch (error) {
+            await this.ensureSwitchingVisible(switchStartedAt);
+            this.switchingChannelName = null;
+            this.renderChannels();
             ErrorHandler.showError(error, '切换失败');
         }
+    }
+
+    async ensureSwitchingVisible(startedAt) {
+        const elapsed = Date.now() - startedAt;
+        if (elapsed >= CHANNEL_SWITCHING_MIN_DURATION) {
+            return;
+        }
+
+        await new Promise(resolve => {
+            setTimeout(resolve, CHANNEL_SWITCHING_MIN_DURATION - elapsed);
+        });
+    }
+
+    notifyAlreadyActive(name) {
+        toast.show(i18n.t('messages.channelAlreadyActive', { name }));
     }
 
     /**
@@ -301,6 +371,13 @@ class ChannelManager {
         const urlValidation = Validation.validateUrl(url);
         if (!urlValidation.valid) {
             toast.show(i18n.t(urlValidation.error));
+            return;
+        }
+
+        // 验证自定义模型名称（可选）
+        const modelValidation = Validation.validateModel(model);
+        if (!modelValidation.valid) {
+            toast.show(i18n.t(modelValidation.error));
             return;
         }
 

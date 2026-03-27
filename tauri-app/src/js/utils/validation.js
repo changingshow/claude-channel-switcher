@@ -47,6 +47,24 @@ const Validation = {
         } catch {
             return { valid: false, error: 'messages.errorUrlInvalid' };
         }
+    },
+
+    /**
+     * 验证自定义模型名称（可选）
+     * @param {string} model - 模型名称
+     * @returns {{valid: boolean, error?: string}} 验证结果
+     */
+    validateModel(model) {
+        if (!model) {
+            return { valid: true };
+        }
+        if (/[\r\n]/.test(model)) {
+            return { valid: false, error: 'messages.errorModelInvalid' };
+        }
+        if (model.length > 120) {
+            return { valid: false, error: 'messages.errorModelInvalid' };
+        }
+        return { valid: true };
     }
 };
 

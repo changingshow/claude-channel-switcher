@@ -921,6 +921,10 @@ body.light-theme .status-indicator.switching {
     box-shadow: 0 10px 24px rgba(10, 132, 255, 0.16);
 }
 
+.channel-switching-badge.channel-switching-badge-offset {
+    top: 46px;
+}
+
 .channel-switching-spinner {
     width: 13px;
     height: 13px;

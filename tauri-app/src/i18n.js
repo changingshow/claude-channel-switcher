@@ -2,7 +2,6 @@ const translations = {
     'zh-CN': {
         app: {
             title: 'Claude 渠道切换器',
-            version: 'v3.9.9',
             description: 'Claude API 渠道管理和切换工具'
         },
         nav: {
@@ -24,11 +23,13 @@ const translations = {
             },
             status: {
                 active: '当前激活',
-                inactive: '待激活'
+                inactive: '待激活',
+                switching: '切换中'
             },
             actions: {
                 launch: '启动',
                 switch: '切换',
+                switching: '切换中',
                 edit: '编辑',
                 delete: '删除'
             },
@@ -208,6 +209,9 @@ const translations = {
                 tokenPlaceholder: 'sk-ant-xxxxx...',
                 url: 'Base URL',
                 urlPlaceholder: 'https://api.anthropic.com',
+                model: '自定义模型名称（可选）',
+                modelPlaceholder: '例如：claude-sonnet-4-5-20250929',
+                modelHelp: '可在 Claude 中使用 /model 命令切换到此模型；不支持换行，最长 120 个字符',
                 balanceField: '余额字段（可选）',
                 balanceFieldRequired: '余额字段（必填）'
             },
@@ -267,6 +271,7 @@ const translations = {
             channelUpdated: '渠道已更新',
             channelDeleted: '渠道 {name} 已删除',
             channelSwitched: '已切换到渠道：{name}',
+            channelAlreadyActive: '当前已是激活渠道：{name}',
             channelLaunched: '已在新窗口中启动 Claude\n当前渠道：{name}',
             channelsRefreshed: '渠道列表已刷新',
             pathUpdated: '配置路径已更新',
@@ -284,6 +289,7 @@ const translations = {
             errorTerminalRequired: '请输入终端命令',
             errorUrlRequired: 'Base URL 不能为空',
             errorUrlInvalid: 'Base URL 必须是 http 或 https 标准链接',
+            errorModelInvalid: '自定义模型名称不能包含换行，且长度不能超过 120 个字符',
             errorNameDuplicate: '渠道名称已存在，请使用其他名称',
             errorBalanceFieldRequired: '填写了余额查询地址时，余额字段为必填项',
             confirmDelete: '确定要删除渠道「{name}」吗？'
@@ -319,7 +325,6 @@ const translations = {
     'en-US': {
         app: {
             title: 'Claude Channel Switcher',
-            version: 'v3.0.0',
             description: 'Claude API channel management and switching tool'
         },
         nav: {
@@ -525,6 +530,9 @@ const translations = {
                 tokenPlaceholder: 'sk-ant-xxxxx...',
                 url: 'Base URL',
                 urlPlaceholder: 'https://api.anthropic.com',
+                model: 'Custom Model (Optional)',
+                modelPlaceholder: 'e.g. claude-sonnet-4-5-20250929',
+                modelHelp: 'Lets you switch to this model with /model in Claude; no line breaks, max 120 characters',
                 balanceField: 'Balance Field (Optional)',
                 balanceFieldRequired: 'Balance Field (Required)'
             },
@@ -584,6 +592,7 @@ const translations = {
             channelUpdated: 'Channel updated',
             channelDeleted: 'Channel {name} deleted',
             channelSwitched: 'Switched to channel: {name}',
+            channelAlreadyActive: 'Channel is already active: {name}',
             channelLaunched: 'Claude launched in new window\nChannel: {name}',
             channelsRefreshed: 'Channels refreshed',
             pathUpdated: 'Config path updated',
@@ -601,6 +610,7 @@ const translations = {
             errorTerminalRequired: 'Please enter terminal command',
             errorUrlRequired: 'Base URL cannot be empty',
             errorUrlInvalid: 'Base URL must be a standard http or https link',
+            errorModelInvalid: 'Custom model cannot contain line breaks and must be 120 characters or fewer',
             errorNameDuplicate: 'Channel name already exists, please use another name',
             errorBalanceFieldRequired: 'Balance field is required when balance URL is provided',
             confirmDelete: 'Are you sure you want to delete channel "{name}"?'

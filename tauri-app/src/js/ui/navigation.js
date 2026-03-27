@@ -65,7 +65,7 @@ class NavigationManager {
 
         const version = document.querySelector('.version');
         if (version) {
-            version.textContent = i18n.t('app.version');
+            version.textContent = state.appVersion || '';
         }
 
         const navItems = document.querySelectorAll('.nav-item');

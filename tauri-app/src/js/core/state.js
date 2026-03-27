@@ -7,6 +7,7 @@ class AppState {
         this.configPath = '';
         this.codexConfigPath = '';
         this.terminalDir = '';
+        this.appVersion = '';
         this.theme = localStorage.getItem('theme') || 'dark';
         this.language = localStorage.getItem('language') || 'zh-CN';
         this.channels = {};
