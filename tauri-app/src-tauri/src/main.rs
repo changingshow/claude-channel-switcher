@@ -245,11 +245,9 @@ async fn switch_channel(config_path: String, channel_name: String) -> ApiRespons
             target_obj.remove("balanceApi");
         }
 
-        // 同步 model（如果源文件有则覆写，没有则移除）
+        // 同步 model（如果源文件有则覆写，没有则保留 settings.json 中原有的 model）
         if let Some(model) = source_json.get("model") {
             target_obj.insert("model".to_string(), model.clone());
-        } else {
-            target_obj.remove("model");
         }
     }
 
