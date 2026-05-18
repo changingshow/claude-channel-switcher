@@ -1,11 +1,11 @@
 # 依赖包
 node_modules/
-package-lock.json
 
 # 构建输出
 dist/
 out/
 build/
+tauri-app/src-tauri/target/
 *.app
 *.exe
 *.dmg
@@ -74,10 +74,6 @@ coverage/
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
-
-# Electron
-*.asar
-release/
 
 settings.local.json
 .claude/
