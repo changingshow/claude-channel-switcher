@@ -10,6 +10,7 @@ class ChannelManager {
         this.channelsList = null;
         this.channelCount = null;
         this.switchingChannelName = null;
+        this.channelsLoaded = false;
         this.init();
     }
 
@@ -28,6 +29,7 @@ class ChannelManager {
     async loadChannels(skipActiveUpdate = false) {
         try {
             const result = await api.getChannels(state.configPath);
+            this.channelsLoaded = true;
 
             if (!result.success) {
                 ErrorHandler.handle(result.error, '加载渠道失败');
@@ -42,6 +44,7 @@ class ChannelManager {
             }
             this.renderChannels();
         } catch (error) {
+            this.channelsLoaded = true;
             ErrorHandler.handle(error, 'Load channels');
             state.channels = {};
             this.renderChannels();
@@ -434,6 +437,27 @@ class ChannelManager {
             DOMUtils.setElementState(refreshBtn, false);
             toast.show(i18n.t('messages.channelsRefreshed'));
         }, REFRESH_ANIMATION_DURATION);
+    }
+
+    /**
+     * 定位到当前激活的渠道卡片
+     * @param {object} options - 定位选项
+     * @param {ScrollBehavior} options.behavior - 滚动行为
+     * @param {boolean} options.showToast - 未找到激活渠道时是否提示
+     * @returns {boolean} 是否找到并定位
+     */
+    locateActiveChannel(options = {}) {
+        const { behavior = 'smooth', showToast = true } = options;
+        const activeCard = this.channelsList?.querySelector('.channel-card.active');
+        if (activeCard) {
+            activeCard.scrollIntoView({ behavior, block: 'start' });
+            return true;
+        }
+
+        if (showToast) {
+            toast.show(i18n.t('messages.noActiveChannel'));
+        }
+        return false;
     }
 
     /**

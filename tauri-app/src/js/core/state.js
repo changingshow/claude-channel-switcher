@@ -10,6 +10,7 @@ class AppState {
         this.appVersion = '';
         this.theme = localStorage.getItem('theme') || 'dark';
         this.language = localStorage.getItem('language') || 'zh-CN';
+        this.activePage = localStorage.getItem('activePage') || 'channels';
         this.channels = {};
         this.activeChannelName = null;
         this.editingChannel = null;
@@ -22,7 +23,7 @@ class AppState {
      */
     save(key, value) {
         this[key] = value;
-        if (['theme', 'language', 'configPath', 'codexConfigPath', 'terminalDir'].includes(key)) {
+        if (['theme', 'language', 'configPath', 'codexConfigPath', 'terminalDir', 'activePage'].includes(key)) {
             localStorage.setItem(key, value);
         }
     }

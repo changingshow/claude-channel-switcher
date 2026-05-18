@@ -170,6 +170,23 @@ class TauriAPI {
         return await this.safeInvoke('window_is_maximized');
     }
 
+    /**
+     * 获取上次打开的菜单页面
+     * @returns {Promise<string|null>} 页面名称
+     */
+    async getLastActivePage() {
+        return await this.safeInvoke('get_last_active_page');
+    }
+
+    /**
+     * 保存当前菜单页面
+     * @param {string} pageName - 页面名称
+     * @returns {Promise<void>}
+     */
+    async saveLastActivePage(pageName) {
+        return await this.safeInvoke('save_last_active_page', { pageName });
+    }
+
     // ==================== Droid 渠道管理 API ====================
 
     /**

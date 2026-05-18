@@ -36,6 +36,7 @@ class CodexManager {
     setupEventListeners() {
         const addBtn = document.getElementById('add-codex-btn');
         const refreshBtn = document.getElementById('refresh-codex-btn');
+        const locateBtn = document.getElementById('locate-codex-active-btn');
         const closeBtn = document.getElementById('codex-modal-close-btn');
         const cancelBtn = document.getElementById('codex-modal-cancel-btn');
         const saveBtn = document.getElementById('codex-modal-save-btn');
@@ -47,6 +48,10 @@ class CodexManager {
         if (refreshBtn) {
             const debouncedRefresh = debounce(() => this.refreshChannels(), 300);
             refreshBtn.addEventListener('click', debouncedRefresh);
+        }
+
+        if (locateBtn) {
+            locateBtn.addEventListener('click', () => this.locateActiveChannel());
         }
 
         if (closeBtn) {
@@ -429,10 +434,31 @@ class CodexManager {
         }, 300);
     }
 
+    locateActiveChannel(options = {}) {
+        const { behavior = 'smooth', showToast = true } = options;
+        const activeCard = this.codexList?.querySelector('.channel-card.active');
+        if (activeCard) {
+            activeCard.scrollIntoView({ behavior, block: 'start' });
+            return true;
+        }
+
+        if (showToast) {
+            toast.show(i18n.t('codex.messages.noActiveChannel'));
+        }
+        return false;
+    }
+
     updateLanguage() {
         const pageTitle = document.querySelector('#codex-page .page-title');
         if (pageTitle) {
             pageTitle.textContent = i18n.t('codex.title');
+        }
+
+        const locateBtn = document.getElementById('locate-codex-active-btn');
+        if (locateBtn) {
+            const label = i18n.t('aria.locateActiveCodex');
+            locateBtn.setAttribute('aria-label', label);
+            locateBtn.setAttribute('title', label);
         }
 
         const refreshBtn = document.getElementById('refresh-codex-btn');

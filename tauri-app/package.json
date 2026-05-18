@@ -1,6 +1,6 @@
 {
   "name": "claude-channel-switcher-tauri",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Claude 渠道切换器 - Tauri 版",
   "main": "src/index.html",
   "scripts": {

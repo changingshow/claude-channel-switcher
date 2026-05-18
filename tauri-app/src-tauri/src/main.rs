@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct BalanceApi {
@@ -48,6 +49,11 @@ struct ApiResponse<T> {
     config: Option<ChannelConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<T>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct UiState {
+    active_page: Option<String>,
 }
 
 // 辅助函数：创建成功响应
@@ -410,6 +416,65 @@ fn read_channels(
     }
 
     Ok(channels)
+}
+
+fn is_valid_page_name(page_name: &str) -> bool {
+    matches!(
+        page_name,
+        "channels" | "statusline" | "codex" | "droid" | "settings"
+    )
+}
+
+fn ui_state_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_config_dir()
+        .map_err(|e| format!("获取应用配置目录失败: {}", e))
+        .map(|dir| dir.join("ui-state.json"))
+}
+
+#[tauri::command]
+fn get_last_active_page(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let path = ui_state_path(&app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let content = match fs::read_to_string(&path) {
+        Ok(content) => content,
+        Err(_) => return Ok(None),
+    };
+    let ui_state: UiState = match serde_json::from_str(&content) {
+        Ok(ui_state) => ui_state,
+        Err(_) => return Ok(None),
+    };
+
+    let page_name = ui_state
+        .active_page
+        .filter(|page| is_valid_page_name(page));
+
+    Ok(page_name)
+}
+
+#[tauri::command]
+fn save_last_active_page(app: tauri::AppHandle, page_name: String) -> Result<(), String> {
+    let page_name = page_name.trim().to_string();
+    if !is_valid_page_name(&page_name) {
+        return Err(format!("未知页面: {}", page_name));
+    }
+
+    let path = ui_state_path(&app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("创建应用配置目录失败 {}: {}", parent.display(), e))?;
+    }
+
+    let ui_state = UiState {
+        active_page: Some(page_name),
+    };
+    let content =
+        serde_json::to_string_pretty(&ui_state).map_err(|e| format!("序列化界面状态失败: {}", e))?;
+
+    fs::write(&path, content).map_err(|e| format!("保存界面状态失败 {}: {}", path.display(), e))
 }
 
 // ==================== Droid 渠道管理 ====================
@@ -789,6 +854,8 @@ fn main() {
             window_unmaximize,
             window_close,
             window_is_maximized,
+            get_last_active_page,
+            save_last_active_page,
             query_balance,
             // Droid 渠道管理
             get_droid_channels,

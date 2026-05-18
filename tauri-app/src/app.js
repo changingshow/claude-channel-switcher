@@ -10,15 +10,33 @@
  * 5. 主入口 (app.js)
  */
 
+let appRevealed = false;
+
 // 应用初始化
 document.addEventListener('DOMContentLoaded', async () => {
     // 确保 Tauri API 已初始化
     if (!api.init()) {
         console.error('Tauri API 未初始化，请确保应用在 Tauri 环境中运行');
+        revealApp();
         return;
     }
-    await initializeApp();
+    try {
+        await initializeApp();
+    } finally {
+        revealApp();
+    }
 });
+
+/**
+ * 显示应用主界面
+ */
+function revealApp() {
+    if (appRevealed) {
+        return;
+    }
+    document.documentElement.classList.remove('app-initializing');
+    appRevealed = true;
+}
 
 /**
  * 初始化应用
@@ -34,6 +52,14 @@ async function initializeApp() {
 
     // 初始化状态
     state.initConfigPath(homeDirectory);
+    try {
+        const lastActivePage = await api.getLastActivePage();
+        if (lastActivePage) {
+            state.save('activePage', lastActivePage);
+        }
+    } catch (e) {
+        console.error('Failed to get last active page:', e);
+    }
 
     // 读取运行时应用版本，避免在前端重复维护一份静态版本号
     try {
@@ -60,13 +86,55 @@ async function initializeApp() {
     droid.init();
     statusline.init();
 
+    const loadedPages = await loadInitialPageData();
+
     // 更新 UI 语言
     updateUILanguage();
+    navigation.locateActiveCardForPage(state.activePage, { behavior: 'auto' });
+    revealApp();
 
-    // 加载渠道列表
-    await channels.loadChannels();
-    await codex.loadChannels();
-    await droid.loadChannels();
+    await loadRemainingChannelData(loadedPages);
+}
+
+/**
+ * 先加载当前菜单的数据，避免首屏出现空列表再刷新
+ * @returns {Promise<Set<string>>} 已加载页面集合
+ */
+async function loadInitialPageData() {
+    const loadedPages = new Set();
+
+    if (state.activePage === 'channels') {
+        await channels.loadChannels();
+        loadedPages.add('channels');
+    } else if (state.activePage === 'codex') {
+        await codex.loadChannels();
+        loadedPages.add('codex');
+    } else if (state.activePage === 'droid') {
+        await droid.loadChannels();
+        loadedPages.add('droid');
+    }
+
+    return loadedPages;
+}
+
+/**
+ * 首屏显示后加载其余渠道数据
+ * @param {Set<string>} loadedPages - 已加载页面集合
+ */
+async function loadRemainingChannelData(loadedPages) {
+    const loadTasks = [];
+
+    if (!loadedPages.has('channels')) {
+        loadTasks.push(channels.loadChannels());
+    }
+    if (!loadedPages.has('codex')) {
+        loadTasks.push(codex.loadChannels());
+    }
+    if (!loadedPages.has('droid')) {
+        loadTasks.push(droid.loadChannels());
+    }
+
+    await Promise.all(loadTasks);
 }
 
 /**
@@ -93,14 +161,7 @@ function setupEventListeners() {
     // 定位到激活渠道按钮
     const locateBtn = document.getElementById('locate-active-btn');
     if (locateBtn) {
-        locateBtn.addEventListener('click', () => {
-            const activeCard = document.querySelector('.channel-card.active');
-            if (activeCard) {
-                activeCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                toast.show(i18n.t('messages.noActiveChannel') || '没有激活的渠道');
-            }
-        });
+        locateBtn.addEventListener('click', () => channels.locateActiveChannel());
     }
 
     if (closeBtn) {

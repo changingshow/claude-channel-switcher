@@ -66,6 +66,13 @@ class TitlebarManager {
         if (closeBtn) {
             closeBtn.addEventListener('click', async () => {
                 try {
+                    if (typeof state !== 'undefined' && state.activePage) {
+                        try {
+                            await api.saveLastActivePage(state.activePage);
+                        } catch (error) {
+                            console.error('Failed to save last active page before close:', error);
+                        }
+                    }
                     await api.windowClose();
                 } catch (error) {
                     ErrorHandler.handle(error, 'window_close');
