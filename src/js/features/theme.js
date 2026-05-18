@@ -20,7 +20,7 @@ class ThemeManager {
             metaTheme.name = 'theme-color';
             document.head.appendChild(metaTheme);
         }
-        metaTheme.content = themeName === 'light' ? '#dcdce0' : '#28282b';
+        metaTheme.content = themeName === 'light' ? '#eee8de' : '#28282b';
 
         // 更新主题切换开关状态
         this.updateToggleState(themeName);
