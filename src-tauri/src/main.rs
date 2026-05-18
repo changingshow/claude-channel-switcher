@@ -61,6 +61,7 @@ struct MenuSetting {
 struct UiState {
     active_page: Option<String>,
     menu_settings: Option<Vec<MenuSetting>>,
+    theme: Option<String>,
 }
 
 // 辅助函数：创建成功响应
@@ -432,6 +433,10 @@ fn is_valid_page_name(page_name: &str) -> bool {
     )
 }
 
+fn is_valid_theme_name(theme_name: &str) -> bool {
+    matches!(theme_name, "dark" | "light")
+}
+
 fn default_menu_settings() -> Vec<MenuSetting> {
     ["channels", "statusline", "codex", "droid", "settings"]
         .iter()
@@ -538,6 +543,15 @@ fn get_menu_settings(app: tauri::AppHandle) -> Result<Option<Vec<MenuSetting>>, 
 }
 
 #[tauri::command]
+fn get_theme(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let path = ui_state_path(&app)?;
+    let ui_state = read_ui_state_from_path(&path);
+    let theme = ui_state.theme.filter(|theme| is_valid_theme_name(theme));
+
+    Ok(theme)
+}
+
+#[tauri::command]
 fn save_last_active_page(app: tauri::AppHandle, page_name: String) -> Result<(), String> {
     let page_name = page_name.trim().to_string();
     if !is_valid_page_name(&page_name) {
@@ -559,6 +573,20 @@ fn save_menu_settings(
     let path = ui_state_path(&app)?;
     let mut ui_state = read_ui_state_from_path(&path);
     ui_state.menu_settings = Some(normalize_menu_settings(menu_settings));
+
+    write_ui_state_to_path(&path, &ui_state)
+}
+
+#[tauri::command]
+fn save_theme(app: tauri::AppHandle, theme_name: String) -> Result<(), String> {
+    let theme_name = theme_name.trim().to_string();
+    if !is_valid_theme_name(&theme_name) {
+        return Err(format!("未知主题: {}", theme_name));
+    }
+
+    let path = ui_state_path(&app)?;
+    let mut ui_state = read_ui_state_from_path(&path);
+    ui_state.theme = Some(theme_name);
 
     write_ui_state_to_path(&path, &ui_state)
 }
@@ -1001,6 +1029,7 @@ mod claude_tests {
             &UiState {
                 active_page: Some("channels".to_string()),
                 menu_settings: Some(menu_settings.clone()),
+                theme: Some("light".to_string()),
             },
         )
         .unwrap();
@@ -1012,6 +1041,15 @@ mod claude_tests {
         let persisted = read_ui_state_from_path(&path);
         assert_eq!(persisted.active_page.as_deref(), Some("codex"));
         assert_eq!(persisted.menu_settings, Some(menu_settings));
+        assert_eq!(persisted.theme.as_deref(), Some("light"));
+    }
+
+    #[test]
+    fn validates_known_theme_names() {
+        assert!(is_valid_theme_name("dark"));
+        assert!(is_valid_theme_name("light"));
+        assert!(!is_valid_theme_name("auto"));
+        assert!(!is_valid_theme_name(""));
     }
 }
 
@@ -1034,8 +1072,10 @@ fn main() {
             window_is_maximized,
             get_last_active_page,
             get_menu_settings,
+            get_theme,
             save_last_active_page,
             save_menu_settings,
+            save_theme,
             query_balance,
             // Droid 渠道管理
             get_droid_channels,

@@ -44,7 +44,6 @@ class ThemeManager {
         const isLight = document.body.classList.contains('light-theme');
         const newTheme = isLight ? 'dark' : 'light';
         this.applyTheme(newTheme);
-        localStorage.setItem('theme', newTheme);
         return newTheme;
     }
 }

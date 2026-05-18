@@ -187,6 +187,14 @@ class TauriAPI {
     }
 
     /**
+     * 获取持久化主题
+     * @returns {Promise<string|null>} 主题名称
+     */
+    async getTheme() {
+        return await this.safeInvoke('get_theme');
+    }
+
+    /**
      * 保存当前菜单页面
      * @param {string} pageName - 页面名称
      * @returns {Promise<void>}
@@ -202,6 +210,15 @@ class TauriAPI {
      */
     async saveMenuSettings(menuSettings) {
         return await this.safeInvoke('save_menu_settings', { menuSettings });
+    }
+
+    /**
+     * 保存当前主题
+     * @param {string} themeName - 主题名称
+     * @returns {Promise<void>}
+     */
+    async saveTheme(themeName) {
+        return await this.safeInvoke('save_theme', { themeName });
     }
 
     // ==================== Droid 渠道管理 API ====================

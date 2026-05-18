@@ -22,7 +22,7 @@ class AppState {
         this.codexConfigPath = '';
         this.terminalDir = '';
         this.appVersion = '';
-        this.theme = localStorage.getItem('theme') || 'dark';
+        this.theme = 'dark';
         this.language = localStorage.getItem('language') || 'zh-CN';
         this.activePage = 'channels';
         this.menuSettings = this.getDefaultMenuSettings();
@@ -44,7 +44,7 @@ class AppState {
         }
 
         this[key] = value;
-        if (['theme', 'language', 'configPath', 'codexConfigPath', 'terminalDir'].includes(key)) {
+        if (['language', 'configPath', 'codexConfigPath', 'terminalDir'].includes(key)) {
             localStorage.setItem(key, value);
         }
     }

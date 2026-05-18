@@ -151,8 +151,18 @@ class SettingsManager {
         );
     }
 
-    handleThemeChange(selectedTheme) {
-        state.save('theme', selectedTheme);
+    async handleThemeChange(selectedTheme) {
+        if (typeof saveThemePreference === 'function') {
+            await saveThemePreference(selectedTheme);
+        } else {
+            state.save('theme', selectedTheme);
+            try {
+                await api.saveTheme(selectedTheme);
+            } catch (error) {
+                console.error('Failed to save theme:', error);
+            }
+        }
+
         theme.applyTheme(selectedTheme);
         DOMUtils.updateButtonGroup('.theme-btn', 'theme', state.theme);
         const themeName = selectedTheme === 'dark' ? i18n.t('settings.theme.dark') : i18n.t('settings.theme.light');

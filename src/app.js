@@ -62,6 +62,7 @@ async function initializeApp() {
     }
 
     await loadPersistedMenuSettings();
+    await loadPersistedTheme();
 
     // 读取运行时应用版本，避免在前端重复维护一份静态版本号
     try {
@@ -113,6 +114,38 @@ async function loadPersistedMenuSettings() {
         await api.saveMenuSettings(state.menuSettings);
     } catch (e) {
         console.error('Failed to load menu settings:', e);
+    }
+}
+
+/**
+ * 从后端读取主题设置，后端没有记录时写入默认主题
+ */
+async function loadPersistedTheme() {
+    try {
+        const persistedTheme = await api.getTheme();
+
+        if (persistedTheme === 'dark' || persistedTheme === 'light') {
+            state.save('theme', persistedTheme);
+            return;
+        }
+
+        await api.saveTheme(state.theme);
+    } catch (e) {
+        console.error('Failed to load theme:', e);
+    }
+}
+
+/**
+ * 保存主题设置到前端状态和后端 UI 状态文件
+ * @param {string} themeName - 主题名称
+ */
+async function saveThemePreference(themeName) {
+    state.save('theme', themeName);
+
+    try {
+        await api.saveTheme(themeName);
+    } catch (e) {
+        console.error('Failed to save theme:', e);
     }
 }
 
@@ -199,9 +232,9 @@ function setupEventListeners() {
     // 主题切换开关
     const themeCheckbox = document.getElementById('theme-checkbox');
     if (themeCheckbox) {
-        themeCheckbox.addEventListener('change', () => {
+        themeCheckbox.addEventListener('change', async () => {
             const newTheme = theme.toggle();
-            state.theme = newTheme;
+            await saveThemePreference(newTheme);
         });
     }
 }
@@ -232,3 +265,4 @@ function updateUILanguage() {
 
 // 将函数暴露到全局作用域，以便其他模块可以调用
 window.updateUILanguage = updateUILanguage;
+window.saveThemePreference = saveThemePreference;
