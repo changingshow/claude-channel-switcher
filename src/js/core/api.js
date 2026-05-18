@@ -179,12 +179,29 @@ class TauriAPI {
     }
 
     /**
+     * 获取持久化的菜单显示和排序设置
+     * @returns {Promise<Array|null>} 菜单设置
+     */
+    async getMenuSettings() {
+        return await this.safeInvoke('get_menu_settings');
+    }
+
+    /**
      * 保存当前菜单页面
      * @param {string} pageName - 页面名称
      * @returns {Promise<void>}
      */
     async saveLastActivePage(pageName) {
         return await this.safeInvoke('save_last_active_page', { pageName });
+    }
+
+    /**
+     * 保存菜单显示和排序设置
+     * @param {Array<{page: string, visible: boolean}>} menuSettings - 菜单设置
+     * @returns {Promise<void>}
+     */
+    async saveMenuSettings(menuSettings) {
+        return await this.safeInvoke('save_menu_settings', { menuSettings });
     }
 
     // ==================== Droid 渠道管理 API ====================

@@ -10,6 +10,8 @@ class NavigationManager {
      * 初始化导航
      */
     init() {
+        this.applyMenuSettings({ resolveActivePage: false });
+
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.addEventListener('click', () => {
@@ -96,7 +98,7 @@ class NavigationManager {
         if (this.isPageAvailable(pageName)) {
             return pageName;
         }
-        return this.defaultPage;
+        return this.getDefaultPage();
     }
 
     /**
@@ -105,9 +107,11 @@ class NavigationManager {
      * @returns {boolean} 页面是否可用
      */
     isPageAvailable(pageName) {
+        const navItem = this.findNavItem(pageName);
         return !!pageName
             && !!document.getElementById(`${pageName}-page`)
-            && !!this.findNavItem(pageName);
+            && !!navItem
+            && !navItem.hidden;
     }
 
     /**
@@ -118,6 +122,92 @@ class NavigationManager {
     findNavItem(pageName) {
         const navItems = document.querySelectorAll('.nav-item');
         return Array.from(navItems).find(item => item.dataset.page === pageName) || null;
+    }
+
+    /**
+     * 获取当前菜单配置
+     * @returns {Array<{page: string, visible: boolean}>} 菜单配置
+     */
+    getMenuSettings() {
+        if (typeof state !== 'undefined' && typeof state.normalizeMenuSettings === 'function') {
+            return state.normalizeMenuSettings(state.menuSettings);
+        }
+
+        return Array.from(document.querySelectorAll('.nav-item')).map(item => ({
+            page: item.dataset.page,
+            visible: !item.hidden
+        }));
+    }
+
+    /**
+     * 获取设置页可用的菜单元数据
+     * @returns {Array<{page: string, visible: boolean, label: string, icon: string, required: boolean}>} 菜单项
+     */
+    getConfigurableMenuItems() {
+        return this.getMenuSettings().map(item => {
+            const navItem = this.findNavItem(item.page);
+            const icon = navItem?.querySelector('.nav-icon')?.textContent?.trim() || '';
+
+            return {
+                ...item,
+                icon,
+                label: i18n.t(`nav.${item.page}`),
+                required: item.page === 'settings'
+            };
+        });
+    }
+
+    /**
+     * 应用菜单配置到左侧导航
+     * @param {object} options - 应用选项
+     */
+    applyMenuSettings(options = {}) {
+        const { resolveActivePage = true } = options;
+        const navMenu = document.querySelector('.nav-menu');
+        if (!navMenu) {
+            return;
+        }
+
+        const menuSettings = this.getMenuSettings();
+        menuSettings.forEach(item => {
+            const navItem = this.findNavItem(item.page);
+            if (!navItem) {
+                return;
+            }
+
+            const isVisible = item.page === 'settings' || item.visible;
+            navMenu.appendChild(navItem);
+            navItem.hidden = !isVisible;
+            navItem.tabIndex = isVisible ? 0 : -1;
+            navItem.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+        });
+
+        if (!resolveActivePage || typeof state === 'undefined') {
+            return;
+        }
+
+        if (!this.isPageAvailable(state.activePage)) {
+            this.switchPage(this.getDefaultPage(menuSettings));
+            return;
+        }
+
+        this.updateActiveNavItem(state.activePage);
+    }
+
+    /**
+     * 获取首个可用的默认页面，优先选择非设置菜单
+     * @param {Array<{page: string, visible: boolean}>} menuSettings - 菜单配置
+     * @returns {string} 默认页面
+     */
+    getDefaultPage(menuSettings = this.getMenuSettings()) {
+        const firstVisibleMenu = menuSettings.find(item =>
+            item.page !== 'settings'
+            && item.visible
+            && document.getElementById(`${item.page}-page`)
+            && this.findNavItem(item.page)
+        );
+
+        return firstVisibleMenu?.page || 'settings';
     }
 
     /**
@@ -209,18 +299,26 @@ class NavigationManager {
             if (textSpan) {
                 textSpan.textContent = i18n.t(`nav.${page}`);
             }
-            let ariaKey = 'settingsPage';
-            if (page === 'channels') {
-                ariaKey = 'channelManagement';
-            } else if (page === 'codex') {
-                ariaKey = 'codexPage';
-            } else if (page === 'droid') {
-                ariaKey = 'droidPage';
-            } else if (page === 'statusline') {
-                ariaKey = 'statuslinePage';
-            }
+            const ariaKey = this.getAriaKey(page);
             item.setAttribute('aria-label', i18n.t(`aria.${ariaKey}`));
         });
+    }
+
+    /**
+     * 获取页面对应的无障碍文案键
+     * @param {string} page - 页面名称
+     * @returns {string} 无障碍文案键
+     */
+    getAriaKey(page) {
+        const ariaKeys = {
+            channels: 'channelManagement',
+            codex: 'codexPage',
+            droid: 'droidPage',
+            statusline: 'statuslinePage',
+            settings: 'settingsPage'
+        };
+
+        return ariaKeys[page] || 'settingsPage';
     }
 }
 

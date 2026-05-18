@@ -2,12 +2,17 @@
  * 设置管理功能模块
  */
 class SettingsManager {
+    constructor() {
+        this.menuSettingsPersistTask = Promise.resolve();
+    }
+
     init() {
         this.setupPathSettings();
         this.setupCodexPathSettings();
         this.setupTerminalDirSettings();
         this.setupThemeSettings();
         this.setupLanguageSettings();
+        this.setupMenuSettings();
     }
 
     setupPathSettings() {
@@ -64,6 +69,27 @@ class SettingsManager {
 
         languageButtons.forEach(btn => {
             btn.addEventListener('click', () => this.handleLanguageChange(btn.dataset.language));
+        });
+    }
+
+    setupMenuSettings() {
+        const menuList = document.getElementById('menu-settings-list');
+        if (!menuList) return;
+
+        this.renderMenuSettings();
+
+        menuList.addEventListener('change', event => {
+            const toggle = event.target.closest('.menu-visible-toggle');
+            if (!toggle) return;
+
+            this.handleMenuVisibilityChange(toggle.dataset.page, toggle.checked);
+        });
+
+        menuList.addEventListener('click', event => {
+            const button = event.target.closest('.menu-move-btn');
+            if (!button) return;
+
+            this.handleMenuMove(button.dataset.page, Number(button.dataset.direction));
         });
     }
 
@@ -163,6 +189,116 @@ class SettingsManager {
         toast.show(i18n.t('messages.languageChanged', { language: langName }));
     }
 
+    handleMenuVisibilityChange(page, visible) {
+        if (page === 'settings') {
+            this.renderMenuSettings();
+            return;
+        }
+
+        const nextMenuSettings = state.menuSettings.map(item => ({
+            ...item,
+            visible: item.page === page ? visible : item.visible
+        }));
+
+        const visibleOptionalCount = nextMenuSettings.filter(item => item.page !== 'settings' && item.visible).length;
+        if (visibleOptionalCount < 1) {
+            toast.show(i18n.t('settings.menu.minimumWarning'));
+            this.renderMenuSettings();
+            return;
+        }
+
+        this.saveMenuSettings(nextMenuSettings);
+    }
+
+    handleMenuMove(page, direction) {
+        const nextMenuSettings = state.menuSettings.map(item => ({ ...item }));
+        const currentIndex = nextMenuSettings.findIndex(item => item.page === page);
+        const targetIndex = currentIndex + direction;
+
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= nextMenuSettings.length) {
+            return;
+        }
+
+        [nextMenuSettings[currentIndex], nextMenuSettings[targetIndex]] = [
+            nextMenuSettings[targetIndex],
+            nextMenuSettings[currentIndex]
+        ];
+
+        this.saveMenuSettings(nextMenuSettings);
+    }
+
+    saveMenuSettings(menuSettings) {
+        state.save('menuSettings', menuSettings);
+
+        if (typeof navigation !== 'undefined') {
+            navigation.applyMenuSettings();
+        }
+
+        this.renderMenuSettings();
+        this.persistMenuSettings();
+        toast.show(i18n.t('settings.menu.updated'));
+    }
+
+    persistMenuSettings() {
+        if (typeof api === 'undefined' || !api.initialized) {
+            return;
+        }
+
+        const menuSettings = state.menuSettings.map(item => ({ ...item }));
+        this.menuSettingsPersistTask = this.menuSettingsPersistTask
+            .catch(() => undefined)
+            .then(() => api.saveMenuSettings(menuSettings))
+            .catch(error => {
+                console.error('Failed to save menu settings:', error);
+                toast.show(i18n.t('settings.menu.persistFailed'));
+            });
+    }
+
+    async waitForMenuSettingsPersist() {
+        await this.menuSettingsPersistTask.catch(() => undefined);
+    }
+
+    renderMenuSettings() {
+        const menuList = document.getElementById('menu-settings-list');
+        if (!menuList || typeof navigation === 'undefined') return;
+
+        const menuItems = navigation.getConfigurableMenuItems();
+        menuList.innerHTML = menuItems.map((item, index) => {
+            const label = DOMUtils.escapeHtml(item.label);
+            const icon = DOMUtils.escapeHtml(item.icon);
+            const visibilityLabel = DOMUtils.escapeHtml(i18n.t('settings.menu.visibilityLabel', { menu: item.label }));
+            const moveUpLabel = DOMUtils.escapeHtml(i18n.t('settings.menu.moveUp', { menu: item.label }));
+            const moveDownLabel = DOMUtils.escapeHtml(i18n.t('settings.menu.moveDown', { menu: item.label }));
+            const requiredBadge = item.required
+                ? `<span class="menu-required-badge">${DOMUtils.escapeHtml(i18n.t('settings.menu.required'))}</span>`
+                : '';
+            const checked = item.visible ? 'checked' : '';
+            const locked = item.required ? 'disabled' : '';
+            const moveUpDisabled = index === 0 ? 'disabled' : '';
+            const moveDownDisabled = index === menuItems.length - 1 ? 'disabled' : '';
+
+            return `
+                <div class="menu-setting-row${item.required ? ' required' : ''}" data-page="${item.page}">
+                    <div class="menu-setting-main">
+                        <span class="menu-setting-icon" aria-hidden="true">${icon}</span>
+                        <span class="menu-setting-name">${label}</span>
+                        ${requiredBadge}
+                    </div>
+                    <label class="menu-visible-control" aria-label="${visibilityLabel}">
+                        <input type="checkbox" class="menu-visible-toggle" data-page="${item.page}" ${checked} ${locked}>
+                        <span>${DOMUtils.escapeHtml(i18n.t('settings.menu.visible'))}</span>
+                    </label>
+                    <div class="menu-order-actions">
+                        <button type="button" class="btn-icon menu-move-btn" data-page="${item.page}" data-direction="-1"
+                            aria-label="${moveUpLabel}" title="${moveUpLabel}" ${moveUpDisabled}>↑</button>
+                        <button type="button" class="btn-icon menu-move-btn" data-page="${item.page}" data-direction="1"
+                            aria-label="${moveDownLabel}" title="${moveDownLabel}" ${moveDownDisabled}>↓</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
     updateLanguage() {
         const pageTitle = document.querySelector('#settings-page .page-title');
         if (pageTitle) {
@@ -174,6 +310,7 @@ class SettingsManager {
         this.updateTerminalDirCard();
         this.updateThemeCard();
         this.updateLanguageCard();
+        this.updateMenuCard();
         this.updateAboutCard();
     }
 
@@ -264,6 +401,21 @@ class SettingsManager {
             const langKey = lang === 'zh-CN' ? 'zhCN' : 'enUS';
             btn.textContent = `${lang === 'zh-CN' ? '🇨🇳' : '🇺🇸'} ${i18n.t(`settings.language.${langKey}`)}`;
         });
+    }
+
+    updateMenuCard() {
+        const card = document.getElementById('setting-menu');
+        if (!card) return;
+
+        const title = card.querySelector('.setting-title');
+        const description = card.querySelector('.setting-description');
+        const hint = card.querySelector('.menu-settings-hint');
+
+        if (title) title.textContent = i18n.t('settings.menu.title');
+        if (description) description.textContent = i18n.t('settings.menu.description');
+        if (hint) hint.textContent = i18n.t('settings.menu.hint');
+
+        this.renderMenuSettings();
     }
 
     updateAboutCard() {

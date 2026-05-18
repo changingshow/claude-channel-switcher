@@ -229,6 +229,19 @@ const translations = {
                 zhCN: '简体中文',
                 enUS: 'English'
             },
+            menu: {
+                title: '菜单设置',
+                description: '选择左侧导航显示的菜单，并调整显示顺序',
+                visible: '显示',
+                required: '必须保留',
+                hint: '设置菜单始终显示；除设置外至少保留一个菜单。',
+                visibilityLabel: '显示或隐藏 {menu}',
+                moveUp: '上移 {menu}',
+                moveDown: '下移 {menu}',
+                updated: '菜单设置已更新',
+                persistFailed: '菜单设置已更新，但重启保存失败',
+                minimumWarning: '除设置外至少需要保留一个菜单'
+            },
             theme: {
                 title: '主题设置',
                 description: '选择应用的外观主题',
@@ -552,6 +565,19 @@ const translations = {
                 description: 'Choose the display language',
                 zhCN: '简体中文',
                 enUS: 'English'
+            },
+            menu: {
+                title: 'Menu Settings',
+                description: 'Choose which navigation items are shown and adjust their order',
+                visible: 'Show',
+                required: 'Required',
+                hint: 'Settings is always shown; keep at least one other menu item visible.',
+                visibilityLabel: 'Show or hide {menu}',
+                moveUp: 'Move {menu} up',
+                moveDown: 'Move {menu} down',
+                updated: 'Menu settings updated',
+                persistFailed: 'Menu updated, but restart persistence failed',
+                minimumWarning: 'Keep at least one menu item besides Settings'
             },
             theme: {
                 title: 'Theme',

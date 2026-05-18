@@ -315,6 +315,10 @@ input,
     font-weight: 600;
 }
 
+.nav-item[hidden] {
+    display: none !important;
+}
+
 .nav-icon {
     font-size: 20px;
 }
@@ -1167,6 +1171,111 @@ body.light-theme .form-input:focus {
     color: var(--text-primary);
     border-color: var(--separator);
     transform: translateY(-1px);
+}
+
+.menu-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.menu-setting-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+}
+
+.menu-setting-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.menu-setting-icon {
+    width: 24px;
+    font-size: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.menu-setting-name {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menu-required-badge {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(10, 132, 255, 0.14);
+    color: var(--accent-primary);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.menu-visible-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.menu-visible-control input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.menu-visible-control input:disabled,
+.menu-visible-control input:disabled+span {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.menu-order-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.menu-order-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.menu-order-actions .btn-icon:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.menu-order-actions .btn-icon:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.menu-settings-hint {
+    margin-top: 12px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .about-text {

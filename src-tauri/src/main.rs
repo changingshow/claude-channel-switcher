@@ -51,9 +51,16 @@ struct ApiResponse<T> {
     data: Option<T>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+struct MenuSetting {
+    page: String,
+    visible: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct UiState {
     active_page: Option<String>,
+    menu_settings: Option<Vec<MenuSetting>>,
 }
 
 // 辅助函数：创建成功响应
@@ -425,6 +432,62 @@ fn is_valid_page_name(page_name: &str) -> bool {
     )
 }
 
+fn default_menu_settings() -> Vec<MenuSetting> {
+    ["channels", "statusline", "codex", "droid", "settings"]
+        .iter()
+        .map(|page| MenuSetting {
+            page: page.to_string(),
+            visible: true,
+        })
+        .collect()
+}
+
+fn normalize_menu_settings(menu_settings: Vec<MenuSetting>) -> Vec<MenuSetting> {
+    let defaults = default_menu_settings();
+    let mut normalized: Vec<MenuSetting> = Vec::new();
+
+    for item in menu_settings {
+        if !is_valid_page_name(&item.page)
+            || normalized.iter().any(|existing| existing.page == item.page)
+        {
+            continue;
+        }
+
+        normalized.push(MenuSetting {
+            visible: item.page == "settings" || item.visible,
+            page: item.page,
+        });
+    }
+
+    for item in defaults {
+        if !normalized.iter().any(|existing| existing.page == item.page) {
+            normalized.push(item);
+        }
+    }
+
+    if let Some(settings_item) = normalized.iter_mut().find(|item| item.page == "settings") {
+        settings_item.visible = true;
+    } else {
+        normalized.push(MenuSetting {
+            page: "settings".to_string(),
+            visible: true,
+        });
+    }
+
+    if !normalized
+        .iter()
+        .any(|item| item.page != "settings" && item.visible)
+    {
+        if let Some(first_optional_item) =
+            normalized.iter_mut().find(|item| item.page != "settings")
+        {
+            first_optional_item.visible = true;
+        }
+    }
+
+    normalized
+}
+
 fn ui_state_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -432,27 +495,46 @@ fn ui_state_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map(|dir| dir.join("ui-state.json"))
 }
 
+fn read_ui_state_from_path(path: &Path) -> UiState {
+    if !path.exists() {
+        return UiState::default();
+    }
+
+    let content = match fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(_) => return UiState::default(),
+    };
+
+    serde_json::from_str(&content).unwrap_or_default()
+}
+
+fn write_ui_state_to_path(path: &Path, ui_state: &UiState) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("创建应用配置目录失败 {}: {}", parent.display(), e))?;
+    }
+
+    let content =
+        serde_json::to_string_pretty(ui_state).map_err(|e| format!("序列化界面状态失败: {}", e))?;
+
+    fs::write(path, content).map_err(|e| format!("保存界面状态失败 {}: {}", path.display(), e))
+}
+
 #[tauri::command]
 fn get_last_active_page(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let path = ui_state_path(&app)?;
-    if !path.exists() {
-        return Ok(None);
-    }
-
-    let content = match fs::read_to_string(&path) {
-        Ok(content) => content,
-        Err(_) => return Ok(None),
-    };
-    let ui_state: UiState = match serde_json::from_str(&content) {
-        Ok(ui_state) => ui_state,
-        Err(_) => return Ok(None),
-    };
-
-    let page_name = ui_state
-        .active_page
-        .filter(|page| is_valid_page_name(page));
+    let ui_state = read_ui_state_from_path(&path);
+    let page_name = ui_state.active_page.filter(|page| is_valid_page_name(page));
 
     Ok(page_name)
+}
+
+#[tauri::command]
+fn get_menu_settings(app: tauri::AppHandle) -> Result<Option<Vec<MenuSetting>>, String> {
+    let path = ui_state_path(&app)?;
+    let ui_state = read_ui_state_from_path(&path);
+
+    Ok(ui_state.menu_settings.map(normalize_menu_settings))
 }
 
 #[tauri::command]
@@ -463,18 +545,22 @@ fn save_last_active_page(app: tauri::AppHandle, page_name: String) -> Result<(),
     }
 
     let path = ui_state_path(&app)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("创建应用配置目录失败 {}: {}", parent.display(), e))?;
-    }
+    let mut ui_state = read_ui_state_from_path(&path);
+    ui_state.active_page = Some(page_name);
 
-    let ui_state = UiState {
-        active_page: Some(page_name),
-    };
-    let content =
-        serde_json::to_string_pretty(&ui_state).map_err(|e| format!("序列化界面状态失败: {}", e))?;
+    write_ui_state_to_path(&path, &ui_state)
+}
 
-    fs::write(&path, content).map_err(|e| format!("保存界面状态失败 {}: {}", path.display(), e))
+#[tauri::command]
+fn save_menu_settings(
+    app: tauri::AppHandle,
+    menu_settings: Vec<MenuSetting>,
+) -> Result<(), String> {
+    let path = ui_state_path(&app)?;
+    let mut ui_state = read_ui_state_from_path(&path);
+    ui_state.menu_settings = Some(normalize_menu_settings(menu_settings));
+
+    write_ui_state_to_path(&path, &ui_state)
 }
 
 // ==================== Droid 渠道管理 ====================
@@ -759,10 +845,7 @@ mod claude_tests {
         let saved: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(dir.join("settings-main.json")).unwrap())
                 .unwrap();
-        assert_eq!(
-            saved["model"].as_str(),
-            Some("claude-sonnet-test")
-        );
+        assert_eq!(saved["model"].as_str(), Some("claude-sonnet-test"));
         assert_eq!(
             saved["env"]["ANTHROPIC_AUTH_TOKEN"].as_str(),
             Some("test-token")
@@ -830,10 +913,105 @@ mod claude_tests {
             switched["env"]["ANTHROPIC_BASE_URL"].as_str(),
             Some("https://api.example.com")
         );
+        assert_eq!(switched["balanceApi"]["field"].as_str(), Some("balance"));
+    }
+
+    #[test]
+    fn normalize_menu_settings_keeps_settings_and_one_optional_menu() {
+        let normalized = normalize_menu_settings(vec![
+            MenuSetting {
+                page: "settings".to_string(),
+                visible: false,
+            },
+            MenuSetting {
+                page: "unknown".to_string(),
+                visible: true,
+            },
+            MenuSetting {
+                page: "channels".to_string(),
+                visible: false,
+            },
+            MenuSetting {
+                page: "channels".to_string(),
+                visible: true,
+            },
+            MenuSetting {
+                page: "codex".to_string(),
+                visible: false,
+            },
+            MenuSetting {
+                page: "droid".to_string(),
+                visible: false,
+            },
+            MenuSetting {
+                page: "statusline".to_string(),
+                visible: false,
+            },
+        ]);
+
         assert_eq!(
-            switched["balanceApi"]["field"].as_str(),
-            Some("balance")
+            normalized
+                .iter()
+                .find(|item| item.page == "settings")
+                .map(|item| item.visible),
+            Some(true)
         );
+        assert!(normalized
+            .iter()
+            .any(|item| item.page != "settings" && item.visible));
+        assert!(!normalized.iter().any(|item| item.page == "unknown"));
+        assert_eq!(
+            normalized
+                .iter()
+                .filter(|item| item.page == "channels")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn ui_state_write_preserves_menu_settings_when_active_page_changes() {
+        let dir = create_temp_dir("ui-state");
+        let path = dir.join("ui-state.json");
+        let menu_settings = normalize_menu_settings(vec![
+            MenuSetting {
+                page: "codex".to_string(),
+                visible: true,
+            },
+            MenuSetting {
+                page: "settings".to_string(),
+                visible: true,
+            },
+            MenuSetting {
+                page: "channels".to_string(),
+                visible: false,
+            },
+            MenuSetting {
+                page: "statusline".to_string(),
+                visible: false,
+            },
+            MenuSetting {
+                page: "droid".to_string(),
+                visible: false,
+            },
+        ]);
+
+        write_ui_state_to_path(
+            &path,
+            &UiState {
+                active_page: Some("channels".to_string()),
+                menu_settings: Some(menu_settings.clone()),
+            },
+        )
+        .unwrap();
+
+        let mut ui_state = read_ui_state_from_path(&path);
+        ui_state.active_page = Some("codex".to_string());
+        write_ui_state_to_path(&path, &ui_state).unwrap();
+
+        let persisted = read_ui_state_from_path(&path);
+        assert_eq!(persisted.active_page.as_deref(), Some("codex"));
+        assert_eq!(persisted.menu_settings, Some(menu_settings));
     }
 }
 
@@ -855,7 +1033,9 @@ fn main() {
             window_close,
             window_is_maximized,
             get_last_active_page,
+            get_menu_settings,
             save_last_active_page,
+            save_menu_settings,
             query_balance,
             // Droid 渠道管理
             get_droid_channels,

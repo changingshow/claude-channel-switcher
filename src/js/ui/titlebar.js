@@ -66,6 +66,10 @@ class TitlebarManager {
         if (closeBtn) {
             closeBtn.addEventListener('click', async () => {
                 try {
+                    if (typeof settings !== 'undefined' && settings.waitForMenuSettingsPersist) {
+                        await settings.waitForMenuSettingsPersist();
+                    }
+
                     if (typeof state !== 'undefined' && state.activePage) {
                         try {
                             await api.saveLastActivePage(state.activePage);

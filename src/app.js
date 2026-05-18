@@ -61,6 +61,8 @@ async function initializeApp() {
         console.error('Failed to get last active page:', e);
     }
 
+    await loadPersistedMenuSettings();
+
     // 读取运行时应用版本，避免在前端重复维护一份静态版本号
     try {
         const appVersion = await api.getAppVersion();
@@ -94,6 +96,24 @@ async function initializeApp() {
     revealApp();
 
     await loadRemainingChannelData(loadedPages);
+}
+
+/**
+ * 从后端读取菜单设置，后端没有记录时写入默认配置
+ */
+async function loadPersistedMenuSettings() {
+    try {
+        const persistedMenuSettings = await api.getMenuSettings();
+
+        if (Array.isArray(persistedMenuSettings)) {
+            state.save('menuSettings', persistedMenuSettings);
+            return;
+        }
+
+        await api.saveMenuSettings(state.menuSettings);
+    } catch (e) {
+        console.error('Failed to load menu settings:', e);
+    }
 }
 
 /**
